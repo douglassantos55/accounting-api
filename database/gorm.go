@@ -23,6 +23,13 @@ func (g *GormQueryResult) With(relation string) QueryResult {
 	return g
 }
 
+func (g *GormQueryResult) Where(column string, value interface{}) QueryResult {
+	g.db = g.db.Where(map[string]interface{}{
+		column: value,
+	})
+	return g
+}
+
 func (g *GormRepository) Find(table string) QueryResult {
 	return &GormQueryResult{
 		db: g.db.Table(table),

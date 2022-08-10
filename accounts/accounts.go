@@ -53,3 +53,15 @@ func List() ([]*Account, error) {
 
 	return accounts, err
 }
+
+func Get(id uint) (*Account, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	var account *Account
+	err = db.Find("accounts").Where("ID", id).With("Parent").Get(&account)
+
+	return account, err
+}

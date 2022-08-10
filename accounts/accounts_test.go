@@ -61,4 +61,19 @@ func TestAccount(t *testing.T) {
 		}
 	})
 
+	t.Run("Get by ID", func(t *testing.T) {
+		account, err := accounts.Get(3)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		if account == nil {
+			t.Error("Should get account")
+		}
+
+		if account.Parent == nil {
+			t.Error("Should include parent")
+		}
+	})
 }
