@@ -26,9 +26,21 @@ type Repository interface {
 	CleanUp()
 }
 
-func GetConnection() (Repository, error) {
-	dns := os.Getenv("DB_CONNECTION")
-	driver := os.Getenv("DB_DRIVER")
+var connection Repository
 
-	return CreateGormRepository(driver, dns)
+func GetConnection() (Repository, error) {
+	if connection == nil {
+		dns := os.Getenv("DB_CONNECTION")
+		driver := os.Getenv("DB_DRIVER")
+
+		repository, err := CreateGormRepository(driver, dns)
+
+		if err != nil {
+			return nil, err
+		}
+
+		connection = repository
+	}
+
+	return connection, nil
 }
