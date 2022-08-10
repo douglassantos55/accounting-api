@@ -20,6 +20,7 @@ type Account struct {
 	Type     AccountType
 	ParentID int
 	Parent   *Account
+	Children []*Account `gorm:"foreignKey:ParentID"`
 }
 
 func Create(name string, accType AccountType, parent *Account) (*Account, error) {
@@ -39,4 +40,16 @@ func Create(name string, accType AccountType, parent *Account) (*Account, error)
 	}
 
 	return account, nil
+}
+
+func List() ([]*Account, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []*Account
+	err = db.Find("accounts").With("Parent").With("Children").Get(&accounts)
+
+	return accounts, err
 }

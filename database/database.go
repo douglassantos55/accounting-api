@@ -12,7 +12,13 @@ type Model struct {
 	DeletedAt *time.Time
 }
 
+type QueryResult interface {
+	Get(dest interface{}) error
+	With(relation string) QueryResult
+}
+
 type Repository interface {
+	Find(table string) QueryResult
 	Create(value interface{}) error
 	Update(value interface{}) error
 	Delete(value interface{}) error

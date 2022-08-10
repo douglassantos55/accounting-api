@@ -9,6 +9,26 @@ type GormRepository struct {
 	db *gorm.DB
 }
 
+type GormQueryResult struct {
+	db *gorm.DB
+}
+
+func (g *GormQueryResult) Get(dest interface{}) error {
+	result := g.db.Find(dest)
+	return result.Error
+}
+
+func (g *GormQueryResult) With(relation string) QueryResult {
+	g.db = g.db.Preload(relation)
+	return g
+}
+
+func (g *GormRepository) Find(table string) QueryResult {
+	return &GormQueryResult{
+		db: g.db.Table(table),
+	}
+}
+
 func (g *GormRepository) Create(value interface{}) error {
 	result := g.db.Create(value)
 	return result.Error

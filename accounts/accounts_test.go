@@ -9,7 +9,7 @@ import (
 
 func TestAccount(t *testing.T) {
 	t.Setenv("DB_DRIVER", "sqlite")
-	t.Setenv("DB_CONNECTION", "test.sqlite")
+	t.Setenv("DB_CONNECTION", "../test.sqlite")
 
 	db, _ := database.GetConnection()
 	db.Migrate(&accounts.Account{})
@@ -30,7 +30,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("With Parent", func(t *testing.T) {
 		parent, _ := accounts.Create("Assets", accounts.Asset, nil)
-		cash, err := accounts.Create("Cash", accounts.Asset, parent)
+		cash, err := accounts.Create("Receivables", accounts.Asset, parent)
 
 		if err != nil {
 			t.Error(err)
@@ -48,4 +48,17 @@ func TestAccount(t *testing.T) {
 			t.Error("Should have a parent")
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		accounts, err := accounts.List()
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(accounts) != 3 {
+			t.Errorf("Expected 3, got %v", len(accounts))
+		}
+	})
+
 }
