@@ -50,19 +50,21 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		accounts, err := accounts.List()
+		var items []*accounts.Account
+		err := accounts.List().Get(&items)
 
 		if err != nil {
 			t.Error(err)
 		}
 
-		if len(accounts) != 3 {
-			t.Errorf("Expected 3, got %v", len(accounts))
+		if len(items) != 3 {
+			t.Errorf("Expected 3, got %v", len(items))
 		}
 	})
 
 	t.Run("Get by ID", func(t *testing.T) {
-		account, err := accounts.Get(3)
+		var account *accounts.Account
+		err := accounts.Find(3).With("Parent").Get(&account)
 
 		if err != nil {
 			t.Error(err)
@@ -74,6 +76,18 @@ func TestAccount(t *testing.T) {
 
 		if account.Parent == nil {
 			t.Error("Should include parent")
+		}
+	})
+
+	t.Run("Get with children", func(t *testing.T) {
+		var account *accounts.Account
+		err := accounts.Find(2).With("Children").Get(&account)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if len(account.Children) != 1 {
+			t.Errorf("Expected 1 children, got %v", len(account.Children))
 		}
 	})
 }

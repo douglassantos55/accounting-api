@@ -25,6 +25,7 @@ type Account struct {
 
 func Create(name string, accType AccountType, parent *Account) (*Account, error) {
 	db, err := database.GetConnection()
+
 	if err != nil {
 		return nil, err
 	}
@@ -42,26 +43,20 @@ func Create(name string, accType AccountType, parent *Account) (*Account, error)
 	return account, nil
 }
 
-func List() ([]*Account, error) {
+func List() database.QueryResult {
 	db, err := database.GetConnection()
+
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	var accounts []*Account
-	err = db.Find("accounts").With("Parent").With("Children").Get(&accounts)
-
-	return accounts, err
+	return db.Find("accounts")
 }
 
-func Get(id uint) (*Account, error) {
+func Find(id uint) database.QueryResult {
 	db, err := database.GetConnection()
 	if err != nil {
-		return nil, err
+		return nil
 	}
-
-	var account *Account
-	err = db.Find("accounts").Where("ID", id).With("Parent").Get(&account)
-
-	return account, err
+	return db.Find("accounts").Where("ID", id)
 }
