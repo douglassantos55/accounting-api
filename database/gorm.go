@@ -45,7 +45,7 @@ func (g *GormRepository) Create(model interface{}) error {
 }
 
 func (g *GormRepository) Update(model interface{}) error {
-	result := g.db.Updates(model)
+	result := g.db.Select("*").Updates(model)
 	return result.Error
 }
 

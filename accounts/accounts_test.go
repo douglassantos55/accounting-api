@@ -128,6 +128,23 @@ func TestAccount(t *testing.T) {
 		}
 	})
 
+	t.Run("Update Remove Parent", func(t *testing.T) {
+		var account *accounts.Account
+		if err := accounts.Find(3).Get(&account); err != nil {
+			t.Error(err)
+		}
+
+		account.ParentID = 0
+		if err := accounts.Update(&account); err != nil {
+			t.Error(err)
+		}
+
+		accounts.Find(3).With("Parent").Get(&account)
+		if account.Parent != nil {
+			t.Error("Should remove Parent")
+		}
+	})
+
 	t.Run("Update With Parent", func(t *testing.T) {
 		var account *accounts.Account
 		if err := accounts.Find(3).Get(&account); err != nil {
