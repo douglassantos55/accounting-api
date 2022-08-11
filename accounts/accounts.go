@@ -60,3 +60,11 @@ func Find(id uint) database.QueryResult {
 	}
 	return db.Find(&Account{}).Where("ID", id)
 }
+
+func Update(model interface{}) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Update(model)
+}

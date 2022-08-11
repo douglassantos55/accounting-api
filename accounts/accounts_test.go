@@ -104,4 +104,47 @@ func TestAccount(t *testing.T) {
 			t.Errorf("Expected 1 children, got %v", len(account.Children))
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		var account *accounts.Account
+
+		if err := accounts.Find(3).Get(&account); err != nil {
+			t.Error(err)
+		}
+
+		previousUpdatedAt := account.UpdatedAt
+		account.Name = "Accounts receivable"
+
+		if err := accounts.Update(&account); err != nil {
+			t.Error(err)
+		}
+
+		if account.Name != "Accounts receivable" {
+			t.Errorf("Expected 'Accounts receivable', got %v", account.Name)
+		}
+
+		if account.UpdatedAt == previousUpdatedAt {
+			t.Error("Expected to be updated")
+		}
+	})
+
+	t.Run("Update With Parent", func(t *testing.T) {
+		var account *accounts.Account
+		if err := accounts.Find(3).Get(&account); err != nil {
+			t.Error(err)
+		}
+
+		account.ParentID = 1
+		if err := accounts.Update(&account); err != nil {
+			t.Error(err)
+		}
+
+		accounts.Find(3).With("Parent").Get(&account)
+		if account.Parent.ID != 1 {
+			t.Errorf("Expected ParentID 1, got %v", account.Parent.ID)
+		}
+		if account.Parent.Name != "Cash" {
+			t.Errorf("Expected 'Cash', got %v", account.Parent.Name)
+		}
+	})
 }
