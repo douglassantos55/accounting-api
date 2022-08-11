@@ -22,7 +22,7 @@ type Repository interface {
 	Find(model interface{}) QueryResult
 	Create(model interface{}) error
 	Update(model interface{}) error
-	Delete(model interface{}) error
+	Delete(model interface{}, id uint) error
 	Migrate(model interface{}) error
 	CleanUp()
 }

@@ -68,3 +68,11 @@ func Update(model interface{}) error {
 	}
 	return db.Update(model)
 }
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Delete(&Account{}, id)
+}

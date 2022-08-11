@@ -15,6 +15,9 @@ type GormQueryResult struct {
 
 func (g *GormQueryResult) Get(dest interface{}) error {
 	result := g.db.Find(dest)
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
 	return result.Error
 }
 
@@ -46,8 +49,8 @@ func (g *GormRepository) Update(model interface{}) error {
 	return result.Error
 }
 
-func (g *GormRepository) Delete(model interface{}) error {
-	result := g.db.Delete(model)
+func (g *GormRepository) Delete(model interface{}, id uint) error {
+	result := g.db.Delete(model, id)
 	return result.Error
 }
 

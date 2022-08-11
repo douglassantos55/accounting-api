@@ -147,4 +147,15 @@ func TestAccount(t *testing.T) {
 			t.Errorf("Expected 'Cash', got %v", account.Parent.Name)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := accounts.Delete(3); err != nil {
+			t.Error(err)
+		}
+
+		var account *accounts.Account
+		if err := accounts.Find(3).Get(&account); err == nil {
+			t.Error("Account should be deleted")
+		}
+	})
 }
