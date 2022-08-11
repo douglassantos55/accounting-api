@@ -50,7 +50,7 @@ func List() database.QueryResult {
 		return nil
 	}
 
-	return db.Find("accounts")
+	return db.Find(&Account{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -58,5 +58,5 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find("accounts").Where("ID", id)
+	return db.Find(&Account{}).Where("ID", id)
 }

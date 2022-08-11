@@ -30,29 +30,29 @@ func (g *GormQueryResult) Where(column string, value interface{}) QueryResult {
 	return g
 }
 
-func (g *GormRepository) Find(table string) QueryResult {
+func (g *GormRepository) Find(model interface{}) QueryResult {
 	return &GormQueryResult{
-		db: g.db.Table(table),
+		db: g.db.Model(model),
 	}
 }
 
-func (g *GormRepository) Create(value interface{}) error {
-	result := g.db.Create(value)
+func (g *GormRepository) Create(model interface{}) error {
+	result := g.db.Create(model)
 	return result.Error
 }
 
-func (g *GormRepository) Update(value interface{}) error {
-	result := g.db.Updates(value)
+func (g *GormRepository) Update(model interface{}) error {
+	result := g.db.Updates(model)
 	return result.Error
 }
 
-func (g *GormRepository) Delete(value interface{}) error {
-	result := g.db.Delete(value)
+func (g *GormRepository) Delete(model interface{}) error {
+	result := g.db.Delete(model)
 	return result.Error
 }
 
-func (g *GormRepository) Migrate(value interface{}) error {
-	return g.db.AutoMigrate(value)
+func (g *GormRepository) Migrate(model interface{}) error {
+	return g.db.AutoMigrate(model)
 }
 
 func (g *GormRepository) CleanUp() {

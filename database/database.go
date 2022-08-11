@@ -19,11 +19,11 @@ type QueryResult interface {
 }
 
 type Repository interface {
-	Find(table string) QueryResult
-	Create(value interface{}) error
-	Update(value interface{}) error
-	Delete(value interface{}) error
-	Migrate(value interface{}) error
+	Find(model interface{}) QueryResult
+	Create(model interface{}) error
+	Update(model interface{}) error
+	Delete(model interface{}) error
+	Migrate(model interface{}) error
 	CleanUp()
 }
 
