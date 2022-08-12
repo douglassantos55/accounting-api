@@ -115,7 +115,7 @@ func TestAccount(t *testing.T) {
 		previousUpdatedAt := account.UpdatedAt
 		account.Name = "Accounts receivable"
 
-		if err := accounts.Update(&account); err != nil {
+		if err := accounts.Update(account); err != nil {
 			t.Error(err)
 		}
 
@@ -135,7 +135,7 @@ func TestAccount(t *testing.T) {
 		}
 
 		account.ParentID = 0
-		if err := accounts.Update(&account); err != nil {
+		if err := accounts.Update(account); err != nil {
 			t.Error(err)
 		}
 
@@ -152,7 +152,7 @@ func TestAccount(t *testing.T) {
 		}
 
 		account.ParentID = 1
-		if err := accounts.Update(&account); err != nil {
+		if err := accounts.Update(account); err != nil {
 			t.Error(err)
 		}
 

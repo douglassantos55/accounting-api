@@ -61,12 +61,12 @@ func Find(id uint) database.QueryResult {
 	return db.Find(&Account{}).Where("ID", id)
 }
 
-func Update(model interface{}) error {
+func Update(account *Account) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
 	}
-	return db.Update(model)
+	return db.Update(account)
 }
 
 func Delete(id uint) error {
