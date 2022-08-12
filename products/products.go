@@ -14,7 +14,7 @@ type Product struct {
 	Name      string
 	Price     float64
 	AccountID uint
-	Account   accounts.Account
+	Account   *accounts.Account
 }
 
 func Create(name string, price float64, accountID uint) (*Product, error) {
@@ -40,4 +40,20 @@ func Create(name string, price float64, accountID uint) (*Product, error) {
 	}
 
 	return product, nil
+}
+
+func List() database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Product{})
+}
+
+func Find(id uint) database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Product{}).Where("ID", id)
 }
