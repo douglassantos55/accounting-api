@@ -15,9 +15,11 @@ type GormQueryResult struct {
 
 func (g *GormQueryResult) Get(dest interface{}) error {
 	result := g.db.Find(dest)
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
+	return result.Error
+}
+
+func (g *GormQueryResult) First(dest interface{}) error {
+	result := g.db.First(dest)
 	return result.Error
 }
 

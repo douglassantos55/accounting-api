@@ -64,7 +64,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("Get by ID", func(t *testing.T) {
 		var account *accounts.Account
-		err := accounts.Find(3).Get(&account)
+		err := accounts.Find(3).First(&account)
 
 		if err != nil {
 			t.Error(err)
@@ -77,7 +77,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("Get with Parent", func(t *testing.T) {
 		var account *accounts.Account
-		err := accounts.Find(3).With("Parent").Get(&account)
+		err := accounts.Find(3).With("Parent").First(&account)
 
 		if err != nil {
 			t.Error(err)
@@ -94,7 +94,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("Get with children", func(t *testing.T) {
 		var account *accounts.Account
-		err := accounts.Find(2).With("Children").Get(&account)
+		err := accounts.Find(2).With("Children").First(&account)
 
 		if err != nil {
 			t.Error(err)
@@ -108,7 +108,7 @@ func TestAccount(t *testing.T) {
 	t.Run("Update", func(t *testing.T) {
 		var account *accounts.Account
 
-		if err := accounts.Find(3).Get(&account); err != nil {
+		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
 		}
 
@@ -130,7 +130,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("Update Remove Parent", func(t *testing.T) {
 		var account *accounts.Account
-		if err := accounts.Find(3).Get(&account); err != nil {
+		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
 		}
 
@@ -139,7 +139,7 @@ func TestAccount(t *testing.T) {
 			t.Error(err)
 		}
 
-		accounts.Find(3).With("Parent").Get(&account)
+		accounts.Find(3).With("Parent").First(&account)
 		if account.Parent != nil {
 			t.Error("Should remove Parent")
 		}
@@ -147,7 +147,7 @@ func TestAccount(t *testing.T) {
 
 	t.Run("Update With Parent", func(t *testing.T) {
 		var account *accounts.Account
-		if err := accounts.Find(3).Get(&account); err != nil {
+		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
 		}
 
@@ -156,7 +156,7 @@ func TestAccount(t *testing.T) {
 			t.Error(err)
 		}
 
-		accounts.Find(3).With("Parent").Get(&account)
+		accounts.Find(3).With("Parent").First(&account)
 		if account.Parent.ID != 1 {
 			t.Errorf("Expected ParentID 1, got %v", account.Parent.ID)
 		}
@@ -171,7 +171,7 @@ func TestAccount(t *testing.T) {
 		}
 
 		var account *accounts.Account
-		if err := accounts.Find(3).Get(&account); err == nil {
+		if err := accounts.Find(3).First(&account); err == nil {
 			t.Error("Account should be deleted")
 		}
 	})
