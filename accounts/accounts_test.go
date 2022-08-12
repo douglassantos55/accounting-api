@@ -175,4 +175,10 @@ func TestAccount(t *testing.T) {
 			t.Error("Account should be deleted")
 		}
 	})
+
+	t.Run("Delete Non Existing Account", func(t *testing.T) {
+		if err := accounts.Delete(153); err == nil {
+			t.Error("Should not delete account that does not exist")
+		}
+	})
 }

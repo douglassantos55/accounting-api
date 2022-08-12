@@ -74,5 +74,8 @@ func Delete(id uint) error {
 	if err != nil {
 		return err
 	}
+	if err := Find(id).First(&Account{}); err != nil {
+		return err
+	}
 	return db.Delete(&Account{}, id)
 }
