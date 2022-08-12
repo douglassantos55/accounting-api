@@ -24,8 +24,7 @@ func Create(name string, price float64, accountID uint) (*Product, error) {
 		return nil, err
 	}
 
-	var account *accounts.Account
-	if err := accounts.Find(accountID).First(&account); err != nil {
+	if !accountExists(accountID) {
 		return nil, ErrRevenueAccountMissing
 	}
 
@@ -56,4 +55,25 @@ func Find(id uint) database.QueryResult {
 		return nil
 	}
 	return db.Find(&Product{}).Where("ID", id)
+}
+
+func Update(product *Product) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+
+	if !accountExists(product.AccountID) {
+		return ErrRevenueAccountMissing
+	}
+
+	return db.Update(product)
+}
+
+func accountExists(accountID uint) bool {
+	var account *accounts.Account
+	if err := accounts.Find(accountID).First(&account); err != nil {
+		return false
+	}
+	return true
 }

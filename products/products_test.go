@@ -115,4 +115,46 @@ func TestProducts(t *testing.T) {
 			t.Error("Should have Account")
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		var item *products.Product
+		products.Find(3).First(&item)
+
+		item.Name = "Mousepad"
+		item.Price = 30.3
+
+		if err := products.Update(item); err != nil {
+			t.Error(err)
+		}
+
+		var product *products.Product
+		products.Find(3).First(&product)
+
+		if product.Name != "Mousepad" {
+			t.Errorf("Expected name %v, got %v", "Mousepad", product.Name)
+		}
+
+		if product.Price != 30.3 {
+			t.Errorf("Expected price %v, got %v", 30.3, product.Price)
+		}
+	})
+
+	t.Run("Update Without Account", func(t *testing.T) {
+		var item *products.Product
+		if err := products.Find(3).First(&item); err != nil {
+			t.Error(err)
+		}
+
+		item.AccountID = 0
+		if err := products.Update(item); err == nil {
+			t.Error("Should not be able to update product without revenue account")
+		}
+
+		var product *products.Product
+		products.Find(3).First(&product)
+
+		if product.AccountID == 0 {
+			t.Error("Should have Account")
+		}
+	})
 }
