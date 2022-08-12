@@ -157,4 +157,21 @@ func TestProducts(t *testing.T) {
 			t.Error("Should have Account")
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := products.Delete(3); err != nil {
+			t.Error(err)
+		}
+
+		var product *products.Product
+		if err := products.Find(3).First(&product); err == nil {
+			t.Error("Product should be deleted")
+		}
+	})
+
+	t.Run("Delete Non Existing Product", func(t *testing.T) {
+		if err := products.Delete(151); err == nil {
+			t.Error("Should not delete product that does not exist")
+		}
+	})
 }

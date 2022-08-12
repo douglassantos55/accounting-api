@@ -70,6 +70,20 @@ func Update(product *Product) error {
 	return db.Update(product)
 }
 
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+
+	if err != nil {
+		return err
+	}
+
+	if err := Find(id).First(&Product{}); err != nil {
+		return err
+	}
+
+	return db.Delete(&Product{}, id)
+}
+
 func accountExists(accountID uint) bool {
 	var account *accounts.Account
 	if err := accounts.Find(accountID).First(&account); err != nil {
