@@ -144,4 +144,14 @@ func TestCustomers(t *testing.T) {
 			t.Error("Should have removed address")
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := customers.Delete(3); err != nil {
+			t.Error(err)
+		}
+
+		if err := customers.Find(3).First(&customers.Customer{}); err == nil {
+			t.Error("Customer should have been deleted")
+		}
+	})
 }

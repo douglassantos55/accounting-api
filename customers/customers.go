@@ -63,3 +63,11 @@ func Update(customer *Customer) error {
 	}
 	return db.Update(customer)
 }
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Delete(&Customer{}, id)
+}
