@@ -38,6 +38,14 @@ func Create(name string, email string, cpf string, phone string, address *Addres
 	return customer, nil
 }
 
+func List() database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Customer{})
+}
+
 func Find(id uint) database.QueryResult {
 	db, err := database.GetConnection()
 	if err != nil {

@@ -42,6 +42,42 @@ func TestCustomers(t *testing.T) {
 		}
 	})
 
+	t.Run("Create without address", func(t *testing.T) {
+		customer, err := customers.Create(
+			"Mark",
+			"mark@email.com",
+			"459.149.594-10",
+			"69 5412-1925",
+			nil,
+		)
+		if err != nil {
+			t.Error(err)
+		}
+		if customer.Address != nil {
+			t.Error("Should not have an address")
+		}
+	})
+
+	t.Run("List", func(t *testing.T) {
+		if _, err := customers.Create(
+			"Jane Doe",
+			"janedoe@email.com",
+			"412.461.592-21",
+			"44 2105-6542",
+			nil,
+		); err != nil {
+			t.Error(err)
+		}
+
+		var items []*customers.Customer
+		if err := customers.List().Get(&items); err != nil {
+			t.Error(err)
+		}
+		if len(items) != 3 {
+			t.Errorf("Expected %v items, got %v", 3, len(items))
+		}
+	})
+
 	t.Run("Get by ID", func(t *testing.T) {
 		var customer *customers.Customer
 
