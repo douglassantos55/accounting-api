@@ -40,6 +40,9 @@ func TestCustomers(t *testing.T) {
 		if customer.ID == 0 {
 			t.Error("Should have an ID")
 		}
+		if customer.Address == nil {
+			t.Error("Should have address")
+		}
 	})
 
 	t.Run("Create without address", func(t *testing.T) {
@@ -96,6 +99,49 @@ func TestCustomers(t *testing.T) {
 
 		if customer.Address.Street != "rua abc" {
 			t.Errorf("Expected Street %v, got %v", "rua abc", customer.Address.Street)
+		}
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		var customer *customers.Customer
+		if err := customers.Find(1).First(&customer); err != nil {
+			t.Error(err)
+		}
+
+		customer.Name = "Updated name"
+		customer.Email = "updated@email.com"
+		customer.Address.Street = "updated street"
+
+		if err := customers.Update(customer); err != nil {
+			t.Error(err)
+		}
+
+		customers.Find(1).First(&customer)
+		if customer.Name != "Updated name" {
+			t.Error("Should have updated name")
+		}
+		if customer.Email != "updated@email.com" {
+			t.Error("Should have updated email")
+		}
+		if customer.Address.Street != "updated street" {
+			t.Error("Should have updated street")
+		}
+	})
+
+	t.Run("Update without address", func(t *testing.T) {
+		var customer *customers.Customer
+		if err := customers.Find(1).First(&customer); err != nil {
+			t.Error(err)
+		}
+
+		customer.Address = nil
+		if err := customers.Update(customer); err != nil {
+			t.Error(err)
+		}
+
+		customers.Find(1).First(&customer)
+		if customer.Address.Street != "" {
+			t.Error("Should have removed address")
 		}
 	})
 }

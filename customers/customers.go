@@ -1,6 +1,8 @@
 package customers
 
-import "example.com/accounting/database"
+import (
+	"example.com/accounting/database"
+)
 
 type Customer struct {
 	database.Model
@@ -52,4 +54,12 @@ func Find(id uint) database.QueryResult {
 		return nil
 	}
 	return db.Find(&Customer{}).Where("ID", id)
+}
+
+func Update(customer *Customer) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Update(customer)
 }
