@@ -84,4 +84,49 @@ func TestSales(t *testing.T) {
 			t.Errorf("Should return ErrItemsMissing, got %v", err)
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		sales.Create(&customers.Customer{Name: "Jane Doe"}, []*sales.Item{
+			{
+				Qty:     1,
+				Price:   100,
+				Product: &products.Product{Name: "Mouse"},
+			},
+		})
+
+		var items []*sales.Sale
+		if err := sales.List().Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 2 {
+			t.Errorf("Expected %v item, got %v", 2, len(items))
+		}
+
+		for _, item := range items {
+			if item.Customer != nil {
+				t.Error("Should not have customer")
+			}
+			if len(item.Items) != 0 {
+				t.Error("Should not have items")
+			}
+		}
+	})
+
+	t.Run("List with Customer and Items", func(t *testing.T) {
+		var items []*sales.Sale
+
+		if err := sales.List().With("Customer").With("Items").Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		for _, item := range items {
+			if item.Customer == nil {
+				t.Error("Should have customer")
+			}
+			if len(item.Items) == 0 {
+				t.Error("Should have items")
+			}
+		}
+	})
 }

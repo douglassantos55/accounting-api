@@ -55,3 +55,11 @@ func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
 
 	return sale, nil
 }
+
+func List() database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Sale{})
+}
