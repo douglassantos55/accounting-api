@@ -1,9 +1,16 @@
 package sales
 
 import (
+	"errors"
+
 	"example.com/accounting/customers"
 	"example.com/accounting/database"
 	"example.com/accounting/products"
+)
+
+var (
+	ErrItemsMissing    = errors.New("Items are required")
+	ErrCustomerMissing = errors.New("Customer is required")
 )
 
 type Sale struct {
@@ -24,6 +31,14 @@ type Item struct {
 }
 
 func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
+	if customer == nil {
+		return nil, ErrCustomerMissing
+	}
+
+	if len(items) == 0 {
+		return nil, ErrItemsMissing
+	}
+
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
