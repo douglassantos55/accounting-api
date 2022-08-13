@@ -63,3 +63,11 @@ func List() database.QueryResult {
 	}
 	return db.Find(&Sale{})
 }
+
+func Find(id uint) database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Sale{}).Where("ID", id)
+}

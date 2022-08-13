@@ -129,4 +129,29 @@ func TestSales(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Get by ID", func(t *testing.T) {
+		var sale *sales.Sale
+		if err := sales.Find(2).First(&sale); err != nil {
+			t.Error(err)
+		}
+
+		if sale.ID == 0 {
+			t.Error("should get sale")
+		}
+	})
+
+	t.Run("Get with Customer and Items", func(t *testing.T) {
+		var sale *sales.Sale
+		if err := sales.Find(2).With("Customer").With("Items").First(&sale); err != nil {
+			t.Error(err)
+		}
+
+		if sale.Customer.Name != "Jane Doe" {
+			t.Errorf("Expected name %v, got %v", "Jane Doe", sale.Customer.Name)
+		}
+		if len(sale.Items) != 1 {
+			t.Error("Expected items")
+		}
+	})
 }
