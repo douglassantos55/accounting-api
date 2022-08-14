@@ -45,3 +45,11 @@ func Find(id uint) database.QueryResult {
 	}
 	return db.Find(&Service{}).Where("ID", id)
 }
+
+func Update(service *Service) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Update(service)
+}

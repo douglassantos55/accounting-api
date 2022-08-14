@@ -67,4 +67,45 @@ func TestServices(t *testing.T) {
 			t.Error("Should retrieve service")
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		var service *services.Service
+		if err := services.Find(3).First(&service); err != nil {
+			t.Error(err)
+		}
+
+		prevUpdate := service.UpdatedAt
+		service.Name = "Updated service"
+
+		if err := services.Update(service); err != nil {
+			t.Error(err)
+		}
+
+		services.Find(3).First(&service)
+		if prevUpdate == service.UpdatedAt {
+			t.Error("Should have updated")
+		}
+
+		if service.Name != "Updated service" {
+			t.Error("Should have updated name")
+		}
+	})
+
+	t.Run("Update without account", func(t *testing.T) {
+		var service *services.Service
+		if err := services.Find(3).First(&service); err != nil {
+			t.Error(err)
+		}
+
+		prevUpdate := service.UpdatedAt
+		service.AccountID = 0
+
+		if prevUpdate != service.UpdatedAt {
+			t.Error("Should not have updated")
+		}
+
+		if err := services.Update(service); err == nil {
+			t.Error("Should not have updated without account")
+		}
+	})
 }
