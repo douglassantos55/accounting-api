@@ -27,13 +27,7 @@ func Create(productId, qty uint) (*Purchase, error) {
 		return nil, err
 	}
 
-	var product *products.Product
-	if err := products.Find(productId).First(&product); err != nil {
-		return purchase, err
-	}
-
-	product.Stock += qty
-	if err := products.Update(product); err != nil {
+	if err := updateProductStock(productId, qty); err != nil {
 		return purchase, err
 	}
 
@@ -54,4 +48,35 @@ func Find(id uint) (database.QueryResult, error) {
 		return nil, err
 	}
 	return db.Find(&Purchase{}).Where("ID", id), nil
+}
+
+func Update(purchase *Purchase) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+
+	if err := db.Update(purchase); err != nil {
+		return err
+	}
+
+	if err := updateProductStock(purchase.ProductID, purchase.Qty); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func updateProductStock(productID, qty uint) error {
+	var product *products.Product
+	if err := products.Find(productID).First(&product); err != nil {
+		return err
+	}
+
+	product.Stock += qty
+	if err := products.Update(product); err != nil {
+		return err
+	}
+
+	return nil
 }

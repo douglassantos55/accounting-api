@@ -127,4 +127,85 @@ func TestPurchases(t *testing.T) {
 			t.Errorf("Expected %v items, got %v", 1, len(items))
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		result, err := purchases.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var purchase *purchases.Purchase
+		if err := result.First(&purchase); err != nil {
+			t.Error(err)
+		}
+
+		prevQty := purchase.Qty
+		prevUpdate := purchase.UpdatedAt
+		prevProduct := purchase.ProductID
+
+		purchase.ProductID = 1
+		purchase.Qty = 99
+
+		if err := purchases.Update(purchase); err != nil {
+			t.Error(err)
+		}
+
+		result, _ = purchases.Find(2)
+		result.First(&purchase)
+
+		if prevUpdate == purchase.UpdatedAt {
+			t.Error("Should have updated")
+		}
+		if purchase.Qty == prevQty {
+			t.Errorf("Expected %v, got %v", 99, purchase.Qty)
+		}
+
+		if prevProduct == purchase.ProductID {
+			t.Errorf("Expected product %v, got %v", 1, purchase.ProductID)
+		}
+	})
+
+	t.Run("Update without product", func(t *testing.T) {
+		result, err := purchases.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var purchase *purchases.Purchase
+		if err := result.First(&purchase); err != nil {
+			t.Error(err)
+		}
+
+		purchase.ProductID = 1110
+
+		if err := purchases.Update(purchase); err == nil {
+			t.Error("Should not update without product")
+		}
+	})
+
+	t.Run("Updates product stock", func(t *testing.T) {
+		prod, _ := products.Create("Prod 3", 11, 2, 1, nil)
+
+		result, err := purchases.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var purchase *purchases.Purchase
+		if err := result.First(&purchase); err != nil {
+			t.Error(err)
+		}
+
+		purchase.Qty = 8
+		purchase.ProductID = prod.ID
+
+		if err := purchases.Update(purchase); err != nil {
+			t.Error(err)
+		}
+
+		products.Find(3).First(&prod)
+		if prod.Stock != 10 {
+			t.Errorf("Expected stock %v , got %v", 10, prod.Stock)
+		}
+	})
 }
