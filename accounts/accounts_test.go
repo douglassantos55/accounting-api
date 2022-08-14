@@ -1,6 +1,8 @@
 package accounts_test
 
 import (
+	"database/sql"
+	"fmt"
 	"testing"
 
 	"example.com/accounting/accounts"
@@ -16,8 +18,25 @@ func TestAccount(t *testing.T) {
 
 	t.Cleanup(db.CleanUp)
 
+	t.Run("Raw SQL", func(t *testing.T) {
+		db, err := sql.Open("sqlite3", "../test.sqlite")
+		if err != nil {
+			t.Error(err)
+		}
+
+		rows, _ := db.Query("SELECT * FROM accounts")
+		var items []*accounts.Account
+
+		for rows.Next() {
+			var item *accounts.Account
+			rows.Scan(&item)
+			items = append(items, item)
+		}
+		fmt.Printf("items: %v\n", items)
+	})
+
 	t.Run("Create", func(t *testing.T) {
-		account, err := accounts.Create("Cash", accounts.Asset, 0)
+		account, err := accounts.Create("Cash", accounts.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -33,8 +52,9 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Create With Parent", func(t *testing.T) {
-		accounts.Create("Assets", accounts.Asset, 0)
-		cash, err := accounts.Create("Receivables", accounts.Asset, 2)
+		accounts.Create("Assets", accounts.Asset, nil)
+		accountID := uint(2)
+		cash, err := accounts.Create("Receivables", accounts.Asset, &accountID)
 
 		if err != nil {
 			t.Error(err)
@@ -44,7 +64,7 @@ func TestAccount(t *testing.T) {
 			t.Errorf("Expected ID 3, got %v", cash.ID)
 		}
 
-		if cash.ParentID != 2 {
+		if *cash.ParentID != 2 {
 			t.Errorf("Expected ParentID to be 2, got %v", cash.ParentID)
 		}
 	})
@@ -134,7 +154,7 @@ func TestAccount(t *testing.T) {
 			t.Error(err)
 		}
 
-		account.ParentID = 0
+		account.ParentID = nil
 		if err := accounts.Update(account); err != nil {
 			t.Error(err)
 		}
@@ -151,7 +171,8 @@ func TestAccount(t *testing.T) {
 			t.Error(err)
 		}
 
-		account.ParentID = 1
+		parent := uint(1)
+		account.ParentID = &parent
 		if err := accounts.Update(account); err != nil {
 			t.Error(err)
 		}

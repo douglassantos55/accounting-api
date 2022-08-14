@@ -17,7 +17,7 @@ func TestProducts(t *testing.T) {
 	db.Migrate(&products.Product{})
 	db.Migrate(&accounts.Account{})
 
-	accounts.Create("Revenue", accounts.Revenue, 0)
+	accounts.Create("Revenue", accounts.Revenue, nil)
 
 	t.Cleanup(db.CleanUp)
 
@@ -36,7 +36,7 @@ func TestProducts(t *testing.T) {
 			t.Errorf("Expected price 350.5, got %v", prod.Price)
 		}
 
-		if prod.AccountID != 1 {
+		if *prod.AccountID != 1 {
 			t.Errorf("Expected AccountID 1, got %v", prod.AccountID)
 		}
 	})
@@ -145,7 +145,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		item.AccountID = 0
+		item.AccountID = nil
 		if err := products.Update(item); err == nil {
 			t.Error("Should not be able to update product without revenue account")
 		}
@@ -153,7 +153,7 @@ func TestProducts(t *testing.T) {
 		var product *products.Product
 		products.Find(3).First(&product)
 
-		if product.AccountID == 0 {
+		if *product.AccountID == 0 {
 			t.Error("Should have Account")
 		}
 	})

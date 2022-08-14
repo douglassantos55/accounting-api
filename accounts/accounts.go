@@ -18,12 +18,12 @@ type Account struct {
 	database.Model
 	Name     string
 	Type     AccountType
-	ParentID uint
+	ParentID *uint
 	Parent   *Account
 	Children []*Account `gorm:"foreignKey:ParentID"`
 }
 
-func Create(name string, accType AccountType, parentID uint) (*Account, error) {
+func Create(name string, accType AccountType, parentID *uint) (*Account, error) {
 	db, err := database.GetConnection()
 
 	if err != nil {

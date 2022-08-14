@@ -13,7 +13,7 @@ type Product struct {
 	database.Model
 	Name      string
 	Price     float64
-	AccountID uint
+	AccountID *uint
 	Account   *accounts.Account
 }
 
@@ -31,7 +31,7 @@ func Create(name string, price float64, accountID uint) (*Product, error) {
 	product := &Product{
 		Name:      name,
 		Price:     price,
-		AccountID: accountID,
+		AccountID: &accountID,
 	}
 
 	if err := db.Create(&product); err != nil {
@@ -63,7 +63,7 @@ func Update(product *Product) error {
 		return nil
 	}
 
-	if !accountExists(product.AccountID) {
+	if product.AccountID == nil || !accountExists(*product.AccountID) {
 		return ErrRevenueAccountMissing
 	}
 
