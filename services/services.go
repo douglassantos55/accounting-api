@@ -29,3 +29,19 @@ func Create(name string, accountID uint) (*Service, error) {
 
 	return service, nil
 }
+
+func List() database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Service{})
+}
+
+func Find(id uint) database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Service{}).Where("ID", id)
+}

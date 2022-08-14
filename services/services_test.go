@@ -42,4 +42,29 @@ func TestServices(t *testing.T) {
 			t.Error("Should not create without account")
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		services.Create("Service 2", 1)
+		services.Create("Service 3", 1)
+
+		var items []*services.Service
+		if err := services.List().Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 3 {
+			t.Errorf("Expected %v items, got %v", 3, len(items))
+		}
+	})
+
+	t.Run("Get by ID", func(t *testing.T) {
+		var service *services.Service
+		if err := services.Find(3).First(&service); err != nil {
+			t.Error(err)
+		}
+
+		if service.ID != 3 {
+			t.Error("Should retrieve service")
+		}
+	})
 }
