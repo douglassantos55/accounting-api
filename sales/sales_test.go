@@ -16,8 +16,8 @@ func TestSales(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&sales.Sale{})
 	db.Migrate(&sales.Item{})
+	db.Migrate(&sales.Sale{})
 	db.Migrate(&products.Product{})
 
 	t.Cleanup(db.CleanUp)
@@ -152,6 +152,37 @@ func TestSales(t *testing.T) {
 		}
 		if len(sale.Items) != 1 {
 			t.Error("Expected items")
+		}
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := sales.Delete(2); err != nil {
+			t.Error(err)
+		}
+
+		var sale *sales.Sale
+		if err := sales.Find(2).First(&sale); err == nil {
+			t.Error("Should have deleted sale")
+		}
+	})
+
+	t.Run("Delete items", func(t *testing.T) {
+		if err := sales.Delete(1); err != nil {
+			t.Error(err)
+		}
+
+		var sale *sales.Sale
+		if err := sales.Find(1).First(&sale); err == nil {
+			t.Error("Should have deleted sale")
+		}
+
+		var items []*sales.Item
+		if err := db.Find(&sales.Item{}).Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 0 {
+			t.Errorf("Should also delete the items, got %v", len(items))
 		}
 	})
 }

@@ -57,7 +57,7 @@ func (g *GormRepository) Delete(model interface{}, id uint) error {
 }
 
 func (g *GormRepository) Migrate(model interface{}) error {
-	return g.db.AutoMigrate(model)
+	return g.db.Exec("PRAGMA foreign_keys = ON").AutoMigrate(model)
 }
 
 func (g *GormRepository) CleanUp() {

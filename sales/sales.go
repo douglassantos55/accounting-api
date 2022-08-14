@@ -15,8 +15,9 @@ var (
 
 type Sale struct {
 	database.Model
-	Items      []*Item
-	Customer   *customers.Customer
+	Items    []*Item             `gorm:"constraint:OnDelete:CASCADE;"`
+	Customer *customers.Customer
+
 	CustomerID uint
 }
 
@@ -70,4 +71,12 @@ func Find(id uint) database.QueryResult {
 		return nil
 	}
 	return db.Find(&Sale{}).Where("ID", id)
+}
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Delete(&Sale{}, id)
 }
