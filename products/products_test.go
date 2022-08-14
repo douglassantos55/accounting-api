@@ -23,7 +23,7 @@ func TestProducts(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Create", func(t *testing.T) {
-		prod, err := products.Create("Keyboard", 350.5, 1, nil)
+		prod, err := products.Create("Keyboard", 350.5, 35, 1, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -43,7 +43,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create Without Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 0, nil)
+		_, err := products.Create("Coffee Powder", 33.6, 37, 0, nil)
 
 		if err == nil {
 			t.Error("Should not be able to create product without revenue account")
@@ -51,7 +51,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create With Non Existing Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 10, nil)
+		_, err := products.Create("Coffee Powder", 33.6, 55, 10, nil)
 
 		if err == nil {
 			t.Error("Should not be able to create product without revenue account")
@@ -59,8 +59,8 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		products.Create("Monitor", 1350.5, 1, nil)
-		products.Create("Mouse", 150.5, 1, nil)
+		products.Create("Monitor", 1350.5, 51, 1, nil)
+		products.Create("Mouse", 150.5, 231, 1, nil)
 
 		var items []*products.Product
 		err := products.List().Get(&items)
@@ -182,7 +182,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		product, err := products.Create("Prod", 100, 1, &vendor.ID)
+		product, err := products.Create("Prod", 100, 11, 1, &vendor.ID)
 		if err != nil {
 			t.Error(err)
 		}

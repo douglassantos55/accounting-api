@@ -14,13 +14,14 @@ type Product struct {
 	database.Model
 	Name      string
 	Price     float64
+	Stock     uint
 	AccountID *uint
 	Account   *accounts.Account
 	VendorID  *uint
 	Vendor    *vendors.Vendor
 }
 
-func Create(name string, price float64, accountID uint, vendorID *uint) (*Product, error) {
+func Create(name string, price float64, stock uint, accountID uint, vendorID *uint) (*Product, error) {
 	db, err := database.GetConnection()
 
 	if err != nil {
@@ -34,6 +35,7 @@ func Create(name string, price float64, accountID uint, vendorID *uint) (*Produc
 	product := &Product{
 		Name:      name,
 		Price:     price,
+		Stock:     stock,
 		AccountID: &accountID,
 		VendorID:  vendorID,
 	}
