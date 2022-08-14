@@ -5,6 +5,7 @@ import (
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/vendors"
 )
 
 var ErrRevenueAccountMissing = errors.New("Renevue account is required")
@@ -15,9 +16,11 @@ type Product struct {
 	Price     float64
 	AccountID *uint
 	Account   *accounts.Account
+	VendorID  *uint
+	Vendor    *vendors.Vendor
 }
 
-func Create(name string, price float64, accountID uint) (*Product, error) {
+func Create(name string, price float64, accountID uint, vendorID *uint) (*Product, error) {
 	db, err := database.GetConnection()
 
 	if err != nil {
@@ -32,6 +35,7 @@ func Create(name string, price float64, accountID uint) (*Product, error) {
 		Name:      name,
 		Price:     price,
 		AccountID: &accountID,
+		VendorID:  vendorID,
 	}
 
 	if err := db.Create(&product); err != nil {

@@ -6,6 +6,7 @@ import (
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
 	"example.com/accounting/products"
+	"example.com/accounting/vendors"
 )
 
 func TestProducts(t *testing.T) {
@@ -22,7 +23,7 @@ func TestProducts(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Create", func(t *testing.T) {
-		prod, err := products.Create("Keyboard", 350.5, 1)
+		prod, err := products.Create("Keyboard", 350.5, 1, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -42,7 +43,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create Without Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 0)
+		_, err := products.Create("Coffee Powder", 33.6, 0, nil)
 
 		if err == nil {
 			t.Error("Should not be able to create product without revenue account")
@@ -50,7 +51,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create With Non Existing Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 10)
+		_, err := products.Create("Coffee Powder", 33.6, 10, nil)
 
 		if err == nil {
 			t.Error("Should not be able to create product without revenue account")
@@ -58,8 +59,8 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		products.Create("Monitor", 1350.5, 1)
-		products.Create("Mouse", 150.5, 1)
+		products.Create("Monitor", 1350.5, 1, nil)
+		products.Create("Mouse", 150.5, 1, nil)
 
 		var items []*products.Product
 		err := products.List().Get(&items)
@@ -172,6 +173,49 @@ func TestProducts(t *testing.T) {
 	t.Run("Delete Non Existing Product", func(t *testing.T) {
 		if err := products.Delete(151); err == nil {
 			t.Error("Should not delete product that does not exist")
+		}
+	})
+
+	t.Run("Create with Vendor", func(t *testing.T) {
+		vendor, err := vendors.Create("Vendor", "", nil)
+		if err != nil {
+			t.Error(err)
+		}
+
+		product, err := products.Create("Prod", 100, 1, &vendor.ID)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if err := products.Find(3).First(&product); err != nil {
+			t.Error(err)
+		}
+
+		if product.Name != "Prod" {
+			t.Errorf("Expected name %v, got %v", "Prod", product.Name)
+		}
+	})
+
+	t.Run("Update without vendor", func(t *testing.T) {
+		var item *products.Product
+		if err := products.Find(3).First(&item); err != nil {
+			t.Error(err)
+		}
+
+		if *item.VendorID != 1 {
+			t.Error("Should have vendor")
+		}
+
+		item.VendorID = nil
+		if err := products.Update(item); err != nil {
+			t.Error("Should be able to update product without vendor")
+		}
+
+		var product *products.Product
+		products.Find(3).First(&product)
+
+		if product.VendorID != nil {
+			t.Error("Should not have Vendor")
 		}
 	})
 }
