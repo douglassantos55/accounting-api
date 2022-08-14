@@ -53,3 +53,11 @@ func Update(vendor *Vendor) error {
 	}
 	return db.Update(vendor)
 }
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Delete(&Vendor{}, id)
+}

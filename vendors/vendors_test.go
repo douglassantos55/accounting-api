@@ -117,4 +117,19 @@ func TestVendors(t *testing.T) {
 			t.Error("Expected address to be removed")
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := vendors.Delete(2); err != nil {
+			t.Error(err)
+		}
+
+		var vendor *vendors.Vendor
+		if err := vendors.Find(2).First(&vendor); err == nil {
+			t.Error("Should have deleted vendor")
+		}
+
+		if vendor.ID != 0 {
+			t.Error("Should have not found vendor")
+		}
+	})
 }
