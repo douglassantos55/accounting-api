@@ -29,3 +29,11 @@ func Create(name, cnpj string, address *customers.Address) (*Vendor, error) {
 
 	return vendor, nil
 }
+
+func List() database.QueryResult {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Find(&Vendor{})
+}

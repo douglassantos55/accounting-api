@@ -42,4 +42,15 @@ func TestVendors(t *testing.T) {
 			t.Error("Should not have address")
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		var items []*vendors.Vendor
+		if err := vendors.List().Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 2 {
+			t.Errorf("Expected %v items, got %v", 2, len(items))
+		}
+	})
 }
