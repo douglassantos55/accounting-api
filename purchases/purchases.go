@@ -39,3 +39,19 @@ func Create(productId, qty uint) (*Purchase, error) {
 
 	return purchase, nil
 }
+
+func List() (database.QueryResult, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+	return db.Find(&Purchase{}), nil
+}
+
+func Find(id uint) (database.QueryResult, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+	return db.Find(&Purchase{}).Where("ID", id), nil
+}

@@ -56,4 +56,75 @@ func TestPurchases(t *testing.T) {
 			t.Errorf("Expected %v stock, got %v", 18, product.Stock)
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		result, err := purchases.List()
+		if err != nil {
+			t.Error(err)
+		}
+
+		var items []*purchases.Purchase
+		if err := result.Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 2 {
+			t.Errorf("Expected %v purchases, got %v", 2, len(items))
+		}
+	})
+
+	t.Run("List with product", func(t *testing.T) {
+		result, err := purchases.List()
+		if err != nil {
+			t.Error(err)
+		}
+
+		var items []*purchases.Purchase
+		if err := result.With("Product").Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		for _, item := range items {
+			if item.Product == nil {
+				t.Error("Should have product")
+			}
+		}
+	})
+
+	t.Run("Get by ID", func(t *testing.T) {
+		result, err := purchases.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var purchase *purchases.Purchase
+		if err := result.First(&purchase); err != nil {
+			t.Error(err)
+		}
+
+		if purchase.ID == 0 {
+			t.Error("Should retrieve purchase")
+		}
+		if purchase.ProductID != 2 {
+			t.Errorf("Expected product %v, got %v", 2, purchase.ProductID)
+		}
+		if purchase.Qty != 10 {
+			t.Errorf("Expected qty %v, got %v", 10, purchase.Qty)
+		}
+	})
+
+	t.Run("List with condition", func(t *testing.T) {
+		result, err := purchases.List()
+		if err != nil {
+			t.Error(err)
+		}
+		var items []*purchases.Purchase
+		if err := result.Where("Qty > ?", 5).Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 1 {
+			t.Errorf("Expected %v items, got %v", 1, len(items))
+		}
+	})
 }
