@@ -108,4 +108,15 @@ func TestServices(t *testing.T) {
 			t.Error("Should not have updated without account")
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := services.Delete(3); err != nil {
+			t.Error(err)
+		}
+
+		var service *services.Service
+		if err := services.Find(3).First(&service); err == nil {
+			t.Error("Should have deleted service")
+		}
+	})
 }

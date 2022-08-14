@@ -49,7 +49,15 @@ func Find(id uint) database.QueryResult {
 func Update(service *Service) error {
 	db, err := database.GetConnection()
 	if err != nil {
-		return nil
+		return err
 	}
 	return db.Update(service)
+}
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil
+	}
+	return db.Delete(&Service{}, id)
 }
