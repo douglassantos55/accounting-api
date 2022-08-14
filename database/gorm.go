@@ -28,10 +28,8 @@ func (g *GormQueryResult) With(relation string) QueryResult {
 	return g
 }
 
-func (g *GormQueryResult) Where(column string, value interface{}) QueryResult {
-	g.db = g.db.Where(map[string]interface{}{
-		column: value,
-	})
+func (g *GormQueryResult) Where(condition string, value interface{}) QueryResult {
+	g.db = g.db.Where(condition, value)
 	return g
 }
 
