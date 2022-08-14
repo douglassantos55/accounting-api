@@ -45,3 +45,11 @@ func Find(id uint) database.QueryResult {
 	}
 	return db.Find(&Vendor{}).Where("ID", id)
 }
+
+func Update(vendor *Vendor) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Update(vendor)
+}

@@ -89,4 +89,32 @@ func TestVendors(t *testing.T) {
 			t.Errorf("Expected name %v, got %v", "Vendor 1", vendor.Name)
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		var vendor *vendors.Vendor
+		if err := vendors.Find(1).First(&vendor); err != nil {
+			t.Error(err)
+		}
+
+		previousUpdatedAt := vendor.UpdatedAt
+		vendor.Name = "Updated vendor"
+		vendor.Address = nil
+
+		if err := vendors.Update(vendor); err != nil {
+			t.Error(err)
+		}
+
+		vendors.Find(1).First(&vendor)
+
+		if previousUpdatedAt == vendor.UpdatedAt {
+			t.Error("Should to have updated")
+		}
+
+		if vendor.Name != "Updated vendor" {
+			t.Error("Should to have updated name")
+		}
+		if vendor.Address.Street != "" {
+			t.Error("Expected address to be removed")
+		}
+	})
 }
