@@ -4,8 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"example.com/accounting/accounts"
 	"example.com/accounting/customers"
 	"example.com/accounting/database"
+	"example.com/accounting/events"
 	"example.com/accounting/products"
 	"example.com/accounting/sales"
 )
@@ -21,6 +23,8 @@ func TestSales(t *testing.T) {
 	db.Migrate(&products.Product{})
 
 	t.Cleanup(db.CleanUp)
+
+	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
 	t.Run("Create", func(t *testing.T) {
 		customer := &customers.Customer{Name: "John Doe"}
@@ -183,6 +187,20 @@ func TestSales(t *testing.T) {
 
 		if len(items) != 0 {
 			t.Errorf("Should also delete the items, got %v", len(items))
+		}
+	})
+
+	t.Run("Updates product stock", func(t *testing.T) {
+		accounts.Create("Revenue", accounts.Revenue, nil)
+
+		prod, _ := products.Create("Prod", 15, 100, 1, nil)
+		customer, _ := customers.Create("Customer", "", "", "", nil)
+
+		sales.Create(customer, []*sales.Item{{Qty: 50, ProductID: prod.ID}})
+		products.Find(prod.ID).First(&prod)
+
+		if prod.Stock != 50 {
+			t.Errorf("Expected stock %v, got %v", 50, prod.Stock)
 		}
 	})
 }

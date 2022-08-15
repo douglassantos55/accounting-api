@@ -5,6 +5,7 @@ import (
 
 	"example.com/accounting/customers"
 	"example.com/accounting/database"
+	"example.com/accounting/events"
 	"example.com/accounting/products"
 )
 
@@ -15,7 +16,7 @@ var (
 
 type Sale struct {
 	database.Model
-	Items    []*Item             `gorm:"constraint:OnDelete:CASCADE;"`
+	Items    []*Item `gorm:"constraint:OnDelete:CASCADE;"`
 	Customer *customers.Customer
 
 	CustomerID uint
@@ -29,6 +30,16 @@ type Item struct {
 	Product   *products.Product
 	SaleID    uint
 	Sale      *Sale
+}
+
+func ReduceProductStock(sale interface{}) {
+	for _, item := range sale.(*Sale).Items {
+		var product *products.Product
+		products.Find(item.ProductID).First(&product)
+
+		product.Stock -= item.Qty
+		products.Update(product)
+	}
 }
 
 func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
@@ -53,6 +64,8 @@ func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
 	if err := db.Create(sale); err != nil {
 		return nil, err
 	}
+
+	events.Dispatch(events.SaleCreated, sale)
 
 	return sale, nil
 }
