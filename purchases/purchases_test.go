@@ -24,17 +24,21 @@ func TestPurchases(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Create", func(t *testing.T) {
-		purchase, err := purchases.Create(1, 5)
+		purchase, err := purchases.Create(1, 5, 155.75)
 		if err != nil {
 			t.Error(err)
 		}
 		if purchase.ID == 0 {
 			t.Error("Should have saved purchase")
 		}
+		if purchase.Price != 155.75 {
+			t.Errorf("Expected price %v, got %v", 155.75, purchase.Price)
+		}
+
 	})
 
 	t.Run("Create without product", func(t *testing.T) {
-		if _, err := purchases.Create(0, 5); err == nil {
+		if _, err := purchases.Create(0, 5, 15.33); err == nil {
 			t.Error("Should not save without product")
 		}
 	})
@@ -42,7 +46,7 @@ func TestPurchases(t *testing.T) {
 	t.Run("Increase product stock", func(t *testing.T) {
 		products.Create("Prod 2", 16, 8, 1, nil)
 
-		_, err := purchases.Create(2, 10)
+		_, err := purchases.Create(2, 10, 157.11)
 		if err != nil {
 			t.Error(err)
 		}

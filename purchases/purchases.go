@@ -8,19 +8,21 @@ import (
 type Purchase struct {
 	database.Model
 	Qty       uint
+	Price     float64
 	ProductID uint
 	Product   *products.Product
 }
 
-func Create(productId, qty uint) (*Purchase, error) {
+func Create(productId, qty uint, price float64) (*Purchase, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
 	purchase := &Purchase{
-		ProductID: productId,
 		Qty:       qty,
+		Price:     price,
+		ProductID: productId,
 	}
 
 	if err := db.Create(purchase); err != nil {
