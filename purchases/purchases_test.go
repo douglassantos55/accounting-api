@@ -208,4 +208,27 @@ func TestPurchases(t *testing.T) {
 			t.Errorf("Expected stock %v , got %v", 10, prod.Stock)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := purchases.Delete(2); err != nil {
+			t.Error(err)
+		}
+
+		result, err := purchases.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var purchase *purchases.Purchase
+		if err := result.First(&purchase); err == nil {
+			t.Error("Should have deleted purchase")
+		}
+
+		var prod *products.Product
+		products.Find(3).First(&prod)
+
+		if prod.Stock != 2 {
+			t.Errorf("Expected stock %v , got %v", 2, prod.Stock)
+		}
+	})
 }

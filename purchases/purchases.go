@@ -80,3 +80,26 @@ func updateProductStock(productID, qty uint) error {
 
 	return nil
 }
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+
+	result, err := Find(id)
+	if err != nil {
+		return err
+	}
+
+	var purchase *Purchase
+	if err := result.First(&purchase); err != nil {
+		return err
+	}
+
+	if err := db.Delete(&Purchase{}, id); err != nil {
+		return err
+	}
+
+	return updateProductStock(purchase.ProductID, -purchase.Qty)
+}
