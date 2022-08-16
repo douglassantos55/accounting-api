@@ -63,3 +63,19 @@ func Create(description string, transactions []*Transaction) (*Entry, error) {
 
 	return entry, nil
 }
+
+func List() (database.QueryResult, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+	return db.Find(&Entry{}), nil
+}
+
+func Find(id uint) (database.QueryResult, error) {
+	db, err := database.GetConnection()
+	if err != nil {
+		return nil, err
+	}
+	return db.Find(&Entry{}).Where("ID", id), nil
+}
