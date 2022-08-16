@@ -5,11 +5,18 @@ import (
 )
 
 type AccountType uint
+type TransactionType uint
+
+const (
+	Debit TransactionType = iota
+	Credit
+)
 
 const (
 	Asset AccountType = iota
 	Liability
 	Equity
+	Dividend
 	Expense
 	Revenue
 )
@@ -21,6 +28,17 @@ type Account struct {
 	ParentID *uint
 	Parent   *Account
 	Children []*Account `gorm:"foreignKey:ParentID"`
+}
+
+func (a Account) TransactionType() TransactionType {
+	switch a.Type {
+	case Dividend, Expense, Asset:
+		return Debit
+	case Liability, Equity, Revenue:
+		return Credit
+	default:
+		panic("Invalid account type")
+	}
 }
 
 func Create(name string, accType AccountType, parentID *uint) (*Account, error) {
