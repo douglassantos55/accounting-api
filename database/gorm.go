@@ -61,7 +61,7 @@ func (g *GormRepository) Delete(model interface{}, id uint) error {
 }
 
 func (g *GormRepository) Migrate(model interface{}) error {
-	return g.db.Exec("PRAGMA foreign_keys = ON").AutoMigrate(model)
+	return g.db.AutoMigrate(model)
 }
 
 func (g *GormRepository) CleanUp() {
@@ -77,6 +77,9 @@ func CreateGormRepository(driver string, dns string) (Repository, error) {
 	db, err := gorm.Open(GetDialector(driver, dns))
 	if err != nil {
 		return nil, err
+	}
+	if driver == "sqlite" {
+		db.Exec("PRAGMA foreign_keys = ON")
 	}
 	return &GormRepository{
 		db: db,
