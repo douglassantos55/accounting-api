@@ -28,6 +28,12 @@ func (g *GormQueryResult) With(relation string) QueryResult {
 	return g
 }
 
+func (g *GormQueryResult) WhereHas(relation, condition string, value interface{}) QueryResult {
+	// good enough for now
+	g.db = g.db.Joins("INNER JOIN "+relation+" ON "+condition, value)
+	return g
+}
+
 func (g *GormQueryResult) Where(condition string, value interface{}) QueryResult {
 	g.db = g.db.Where(condition, value)
 	return g

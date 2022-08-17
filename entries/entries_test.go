@@ -114,4 +114,21 @@ func TestEntries(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Filter by account", func(t *testing.T) {
+		result, err := entries.List()
+		if err != nil {
+			t.Error(err)
+		}
+
+		var items []*entries.Entry
+		result = result.WhereHas("transactions", "entries.id = transactions.entry_id AND transactions.account_id = ?", 5)
+		if err := result.Get(&items); err != nil {
+			t.Error(err)
+		}
+
+		if len(items) != 0 {
+			t.Errorf("Should not find anything with account 5, got %v", items)
+		}
+	})
 }

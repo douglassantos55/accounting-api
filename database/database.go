@@ -17,6 +17,7 @@ type QueryResult interface {
 	First(dest interface{}) error
 	With(relation string) QueryResult
 	Where(condition string, value interface{}) QueryResult
+	WhereHas(relation, condition string, value interface{}) QueryResult
 }
 
 type Repository interface {
