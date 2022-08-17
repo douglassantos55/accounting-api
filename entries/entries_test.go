@@ -148,4 +148,44 @@ func TestEntries(t *testing.T) {
 			t.Errorf("Expected %v entries, got %v", 2, len(items))
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		result, err := entries.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var entry *entries.Entry
+		if err := result.With("Transactions").First(&entry); err != nil {
+			t.Error(err)
+		}
+
+		entry.Description = "Updated entry"
+		entry.Transactions[0].Value = 11
+		entry.Transactions[0].AccountID = 2
+		entry.Transactions[1].Value = 11
+		entry.Transactions[1].AccountID = 1
+
+		if err := entries.Update(entry); err != nil {
+			t.Error(err)
+		}
+
+		result, _ = entries.Find(2)
+
+		var updated *entries.Entry
+		result.With("Transactions").First(&updated)
+
+		if updated.Description != "Updated entry" {
+			t.Errorf("Expected %v, got %v", "Updated entry", updated.Description)
+		}
+
+		for i, transaction := range updated.Transactions {
+			if int(transaction.AccountID) != 2/(i+1) {
+				t.Errorf("Expected %v, got %v", 2/(i+1), transaction.AccountID)
+			}
+			if transaction.Value != 11 {
+				t.Errorf("Expected %v, got %v", 11, transaction.Value)
+			}
+		}
+	})
 }

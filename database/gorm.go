@@ -51,7 +51,7 @@ func (g *GormRepository) Create(model interface{}) error {
 }
 
 func (g *GormRepository) Update(model interface{}) error {
-	result := g.db.Select("*").Updates(model)
+	result := g.db.Save(model)
 	return result.Error
 }
 
@@ -74,7 +74,10 @@ func (g *GormRepository) CleanUp() {
 }
 
 func CreateGormRepository(driver string, dns string) (Repository, error) {
-	db, err := gorm.Open(GetDialector(driver, dns))
+	db, err := gorm.Open(GetDialector(driver, dns), &gorm.Config{
+		FullSaveAssociations: true,
+	})
+
 	if err != nil {
 		return nil, err
 	}

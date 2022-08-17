@@ -79,3 +79,11 @@ func Find(id uint) (database.QueryResult, error) {
 	}
 	return db.Find(&Entry{}).Where("ID", id), nil
 }
+
+func Update(entry *Entry) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Update(entry)
+}
