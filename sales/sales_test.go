@@ -20,10 +20,12 @@ func TestSales(t *testing.T) {
 
 	db.Migrate(&sales.Item{})
 	db.Migrate(&sales.Sale{})
+	db.Migrate(&accounts.Account{})
 	db.Migrate(&products.Product{})
 
 	t.Cleanup(db.CleanUp)
 
+	accounts.Create("Revenue", accounts.Revenue, nil)
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
 	t.Run("Create", func(t *testing.T) {
@@ -33,12 +35,12 @@ func TestSales(t *testing.T) {
 			{
 				Qty:     1,
 				Price:   100,
-				Product: &products.Product{Name: "Mouse"},
+				Product: &products.Product{Name: "Mouse", AccountID: 1},
 			},
 			{
 				Qty:     2,
 				Price:   30,
-				Product: &products.Product{Name: "Mousepad"},
+				Product: &products.Product{Name: "Mousepad", AccountID: 1},
 			},
 		}
 
@@ -61,12 +63,12 @@ func TestSales(t *testing.T) {
 			{
 				Qty:     1,
 				Price:   100,
-				Product: &products.Product{Name: "Mouse"},
+				Product: &products.Product{Name: "Mouse", AccountID: 1},
 			},
 			{
 				Qty:     2,
 				Price:   30,
-				Product: &products.Product{Name: "Mousepad"},
+				Product: &products.Product{Name: "Mousepad", AccountID: 1},
 			},
 		}
 
@@ -94,7 +96,7 @@ func TestSales(t *testing.T) {
 			{
 				Qty:     1,
 				Price:   100,
-				Product: &products.Product{Name: "Mouse"},
+				Product: &products.Product{Name: "Mouse", Stock: 5, AccountID: 1},
 			},
 		})
 
@@ -191,8 +193,6 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("Updates product stock", func(t *testing.T) {
-		accounts.Create("Revenue", accounts.Revenue, nil)
-
 		prod, _ := products.Create("Prod", 15, 100, 1, nil)
 		customer, _ := customers.Create("Customer", "", "", "", nil)
 
