@@ -12,7 +12,7 @@ var ErrEntryNotBalanced = errors.New("Entry not balanced")
 type Entry struct {
 	database.Model
 	Description  string
-	Transactions []*Transaction
+	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (e Entry) IsBalanced() bool {
@@ -86,4 +86,12 @@ func Update(entry *Entry) error {
 		return err
 	}
 	return db.Update(entry)
+}
+
+func Delete(id uint) error {
+	db, err := database.GetConnection()
+	if err != nil {
+		return err
+	}
+	return db.Delete(&Entry{}, id)
 }

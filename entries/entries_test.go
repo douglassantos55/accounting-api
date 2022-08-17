@@ -188,4 +188,30 @@ func TestEntries(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		if err := entries.Delete(2); err != nil {
+			t.Error(err)
+		}
+
+		result, err := entries.Find(2)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var entry *entries.Entry
+		if err := result.First(&entry); err == nil {
+			t.Error("Should not find deleted entry")
+		}
+
+		// check if transactions are deleted
+		var transactions []*entries.Transaction
+		if err := db.Find(&entries.Transaction{}).Get(&transactions); err != nil {
+			t.Error(err)
+		}
+
+		if len(transactions) != 2 {
+			t.Errorf("Expected %v, got %v", 2, len(transactions))
+		}
+	})
 }
