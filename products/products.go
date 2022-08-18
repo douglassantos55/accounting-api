@@ -8,39 +8,52 @@ import (
 	"example.com/accounting/vendors"
 )
 
-var ErrRevenueAccountMissing = errors.New("Renevue account is required")
+var (
+	ErrRevenueAccountMissing    = errors.New("Revenue account is required")
+	ErrReceivableAccountMissing = errors.New("Receivable account is required")
+	ErrInventoryAccountMissing  = errors.New("Inventory account is required")
+)
+
+type StockEntry struct {
+	Qty       uint
+	Price     float64
+	ProductID uint
+	Product   *Product
+}
 
 type Product struct {
 	database.Model
-	Name      string
-	Price     float64
-	Stock     uint
-	AccountID uint
-	Account   *accounts.Account
-	VendorID  *uint
-	Vendor    *vendors.Vendor
+	Name                string
+	Price               float64
+	Purchasable         bool
+	ManageStock         bool
+	RevenueAccountID    *uint
+	RevenueAccount      *accounts.Account
+	ReceivableAccountID *uint
+	ReceivableAccount   *accounts.Account
+	InventoryAccountID  *uint
+	InventoryAccount    *accounts.Account
+	VendorID            *uint
+	Vendor              *vendors.Vendor
+	StockEntries        []*StockEntry
 }
 
-func Create(name string, price float64, stock uint, accountID uint, vendorID *uint) (*Product, error) {
+func Create(product *Product) error {
 	db, err := database.GetConnection()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	product := &Product{
-		Name:      name,
-		Price:     price,
-		Stock:     stock,
-		AccountID: accountID,
-		VendorID:  vendorID,
+	if err := validateAccounts(product); err != nil {
+		return err
 	}
 
 	if err := db.Create(&product); err != nil {
-		return nil, err
+		return err
 	}
 
-	return product, nil
+	return nil
 }
 
 func List() database.QueryResult {
@@ -61,9 +74,15 @@ func Find(id uint) database.QueryResult {
 
 func Update(product *Product) error {
 	db, err := database.GetConnection()
+
 	if err != nil {
 		return nil
 	}
+
+	if err := validateAccounts(product); err != nil {
+		return err
+	}
+
 	return db.Update(product)
 }
 
@@ -81,10 +100,20 @@ func Delete(id uint) error {
 	return db.Delete(&Product{}, id)
 }
 
-func accountExists(accountID uint) bool {
-	var account *accounts.Account
-	if err := accounts.Find(accountID).First(&account); err != nil {
-		return false
+func validateAccounts(product *Product) error {
+	if product.Purchasable {
+		if product.RevenueAccountID == nil {
+			return ErrRevenueAccountMissing
+		}
+
+		if product.ReceivableAccountID == nil {
+			return ErrReceivableAccountMissing
+		}
 	}
-	return true
+
+	if product.ManageStock && product.InventoryAccountID == nil {
+		return ErrInventoryAccountMissing
+	}
+
+	return nil
 }

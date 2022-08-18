@@ -3,6 +3,7 @@ package database
 import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type GormRepository struct {
@@ -23,8 +24,14 @@ func (g *GormQueryResult) First(dest interface{}) error {
 	return result.Error
 }
 
-func (g *GormQueryResult) With(relation string) QueryResult {
-	g.db = g.db.Preload(relation)
+func (g *GormQueryResult) With(relations ...string) QueryResult {
+	if len(relations) == 1 && relations[0] == "*" {
+		g.db = g.db.Preload(clause.Associations)
+	} else {
+		for _, association := range relations {
+			g.db = g.db.Preload(association)
+		}
+	}
 	return g
 }
 

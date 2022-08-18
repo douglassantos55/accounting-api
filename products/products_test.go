@@ -1,6 +1,7 @@
 package products_test
 
 import (
+	"errors"
 	"testing"
 
 	"example.com/accounting/accounts"
@@ -16,16 +17,27 @@ func TestProducts(t *testing.T) {
 	db, _ := database.GetConnection()
 
 	db.Migrate(&products.Product{})
+	db.Migrate(&products.StockEntry{})
 	db.Migrate(&accounts.Account{})
 
-	accounts.Create("Revenue", accounts.Revenue, nil)
+	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
+	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
+	receivables, _ := accounts.Create("Receivables", accounts.Asset, nil)
 
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Create", func(t *testing.T) {
-		prod, err := products.Create("Keyboard", 350.5, 35, 1, nil)
+		prod := &products.Product{
+			Name:                "Keyboard",
+			Price:               350.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			InventoryAccountID:  &inventory.ID,
+			ReceivableAccountID: &receivables.ID,
+		}
 
-		if err != nil {
+		if err := products.Create(prod); err != nil {
 			t.Error(err)
 		}
 
@@ -37,30 +49,138 @@ func TestProducts(t *testing.T) {
 			t.Errorf("Expected price 350.5, got %v", prod.Price)
 		}
 
-		if prod.AccountID != 1 {
-			t.Errorf("Expected AccountID 1, got %v", prod.AccountID)
+		if *prod.RevenueAccountID != 1 {
+			t.Errorf("Expected AccountID 1, got %v", prod.RevenueAccountID)
+		}
+
+		if *prod.InventoryAccountID != 2 {
+			t.Errorf("Expected AccountID 2, got %v", prod.InventoryAccountID)
+		}
+
+		if *prod.ReceivableAccountID != 3 {
+			t.Errorf("Expected AccountID 3, got %v", prod.ReceivableAccountID)
 		}
 	})
 
-	t.Run("Create Without Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 37, 0, nil)
+	t.Run("Create Without Revenue Account", func(t *testing.T) {
+		err := products.Create(&products.Product{
+			Name:                "Coffe Powder",
+			Price:               33.6,
+			Purchasable:         true,
+			ManageStock:         true,
+			ReceivableAccountID: &receivables.ID,
+			InventoryAccountID:  &inventory.ID,
+		})
+
+		if !errors.Is(err, products.ErrRevenueAccountMissing) {
+			t.Error("Should not be able to create product without revenue account")
+		}
+	})
+
+	t.Run("Create Without Receivable Account", func(t *testing.T) {
+		err := products.Create(&products.Product{
+			Name:               "Iron plate",
+			Price:              330.6,
+			Purchasable:        true,
+			ManageStock:        true,
+			RevenueAccountID:   &revenue.ID,
+			InventoryAccountID: &inventory.ID,
+		})
+
+		if !errors.Is(err, products.ErrReceivableAccountMissing) {
+			t.Error("Should not be able to create product without receivable account")
+		}
+	})
+
+	t.Run("Create Without Inventory Account", func(t *testing.T) {
+		err := products.Create(&products.Product{
+			Name:                "Concrete",
+			Price:               50.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			ReceivableAccountID: &receivables.ID,
+		})
+
+		if !errors.Is(err, products.ErrInventoryAccountMissing) {
+			t.Error("Should not be able to create product without inventory account")
+		}
+	})
+
+	t.Run("Create With Non Existing Revenue Account", func(t *testing.T) {
+		fakeId := uint(15115)
+
+		err := products.Create(&products.Product{
+			Name:                "Door",
+			Price:               70.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &fakeId,
+			InventoryAccountID:  &inventory.ID,
+			ReceivableAccountID: &receivables.ID,
+		})
 
 		if err == nil {
 			t.Error("Should not be able to create product without revenue account")
 		}
 	})
 
-	t.Run("Create With Non Existing Account", func(t *testing.T) {
-		_, err := products.Create("Coffee Powder", 33.6, 55, 10, nil)
+	t.Run("Create With Non Existing Receivable Account", func(t *testing.T) {
+		fakeId := uint(15115)
+
+		err := products.Create(&products.Product{
+			Name:                "Door knob",
+			Price:               20.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			InventoryAccountID:  &inventory.ID,
+			ReceivableAccountID: &fakeId,
+		})
 
 		if err == nil {
-			t.Error("Should not be able to create product without revenue account")
+			t.Error("Should not be able to create product without receivable account")
+		}
+	})
+
+	t.Run("Create With Non Existing Inventory Account", func(t *testing.T) {
+		fakeId := uint(15115)
+
+		err := products.Create(&products.Product{
+			Name:                "Guitar",
+			Price:               720.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			InventoryAccountID:  &fakeId,
+			ReceivableAccountID: &receivables.ID,
+		})
+
+		if err == nil {
+			t.Error("Should not be able to create product without inventory account")
 		}
 	})
 
 	t.Run("List", func(t *testing.T) {
-		products.Create("Monitor", 1350.5, 51, 1, nil)
-		products.Create("Mouse", 150.5, 231, 1, nil)
+		products.Create(&products.Product{
+			Name:                "Monitor",
+			Price:               1350.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			ReceivableAccountID: &receivables.ID,
+			InventoryAccountID:  &inventory.ID,
+		})
+
+		products.Create(&products.Product{
+			Name:                "Mouse",
+			Price:               150.5,
+			Purchasable:         true,
+			ManageStock:         true,
+			RevenueAccountID:    &revenue.ID,
+			ReceivableAccountID: &receivables.ID,
+			InventoryAccountID:  &inventory.ID,
+		})
 
 		var items []*products.Product
 		err := products.List().Get(&items)
@@ -74,17 +194,25 @@ func TestProducts(t *testing.T) {
 		}
 	})
 
-	t.Run("List With Account", func(t *testing.T) {
+	t.Run("List With Accounts", func(t *testing.T) {
 		var items []*products.Product
-		err := products.List().With("Account").Get(&items)
+		err := products.List().With("*").Get(&items)
 
 		if err != nil {
 			t.Error(err)
 		}
 
 		for _, product := range items {
-			if product.Account == nil {
+			if product.Purchasable && product.RevenueAccount == nil {
 				t.Error("Should have revenue account")
+			}
+
+			if product.Purchasable && product.ReceivableAccount == nil {
+				t.Error("Should have receivable account")
+			}
+
+			if product.ManageStock && product.InventoryAccount == nil {
+				t.Error("Should have inventory account")
 			}
 		}
 	})
@@ -105,15 +233,23 @@ func TestProducts(t *testing.T) {
 		}
 	})
 
-	t.Run("Get With Account", func(t *testing.T) {
+	t.Run("Get With Accounts", func(t *testing.T) {
 		var product *products.Product
 
-		if err := products.Find(3).With("Account").First(&product); err != nil {
+		if err := products.Find(3).With("RevenueAccount", "InventoryAccount", "ReceivableAccount").First(&product); err != nil {
 			t.Error(err)
 		}
 
-		if product.Account == nil {
-			t.Error("Should have Account")
+		if product.Purchasable && product.RevenueAccount == nil {
+			t.Error("Should have revenue account")
+		}
+
+		if product.Purchasable && product.ReceivableAccount == nil {
+			t.Error("Should have receivable account")
+		}
+
+		if product.ManageStock && product.InventoryAccount == nil {
+			t.Error("Should have inventory account")
 		}
 	})
 
@@ -140,13 +276,13 @@ func TestProducts(t *testing.T) {
 		}
 	})
 
-	t.Run("Update Without Account", func(t *testing.T) {
+	t.Run("Update Without Revenue Account", func(t *testing.T) {
 		var item *products.Product
 		if err := products.Find(3).First(&item); err != nil {
 			t.Error(err)
 		}
 
-		item.AccountID = 0
+		item.RevenueAccountID = nil
 		if err := products.Update(item); err == nil {
 			t.Error("Should not be able to update product without revenue account")
 		}
@@ -156,8 +292,50 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		if product.AccountID == 0 {
-			t.Error("Should have Account")
+		if product.RevenueAccountID == nil {
+			t.Error("Should have Revenue Account")
+		}
+	})
+
+	t.Run("Update Without Receivable Account", func(t *testing.T) {
+		var item *products.Product
+		if err := products.Find(3).First(&item); err != nil {
+			t.Error(err)
+		}
+
+		item.ReceivableAccountID = nil
+		if err := products.Update(item); err == nil {
+			t.Error("Should not be able to update product without receivable account")
+		}
+
+		var product *products.Product
+		if err := products.Find(3).First(&product); err != nil {
+			t.Error(err)
+		}
+
+		if product.ReceivableAccountID == nil {
+			t.Error("Should have Receivable Account")
+		}
+	})
+
+	t.Run("Update Without Inventory Account", func(t *testing.T) {
+		var item *products.Product
+		if err := products.Find(3).First(&item); err != nil {
+			t.Error(err)
+		}
+
+		item.InventoryAccountID = nil
+		if err := products.Update(item); err == nil {
+			t.Error("Should not be able to update product without inventory account")
+		}
+
+		var product *products.Product
+		if err := products.Find(3).First(&product); err != nil {
+			t.Error(err)
+		}
+
+		if product.InventoryAccountID == nil {
+			t.Error("Should have Inventory Account")
 		}
 	})
 
@@ -184,17 +362,25 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		product, err := products.Create("Prod", 100, 11, 1, &vendor.ID)
-		if err != nil {
+		if err := products.Create(&products.Product{
+			Name:     "Prod",
+			Price:    100,
+			VendorID: &vendor.ID,
+		}); err != nil {
 			t.Error(err)
 		}
 
+		var product *products.Product
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
 		}
 
 		if product.Name != "Prod" {
 			t.Errorf("Expected name %v, got %v", "Prod", product.Name)
+		}
+
+		if *product.VendorID != vendor.ID {
+			t.Errorf("Expected vendor %v, got %v", vendor.ID, *product.VendorID)
 		}
 	})
 
@@ -218,6 +404,35 @@ func TestProducts(t *testing.T) {
 
 		if product.VendorID != nil {
 			t.Error("Should not have Vendor")
+		}
+	})
+
+	t.Run("Create without manage stock", func(t *testing.T) {
+		err := products.Create(&products.Product{
+			Name:                "Notebook",
+			Price:               5000,
+			Purchasable:         true,
+			ManageStock:         false,
+			RevenueAccountID:    &revenue.ID,
+			ReceivableAccountID: &receivables.ID,
+		})
+
+		if err != nil {
+			t.Error("Should create without inventory account")
+		}
+	})
+
+	t.Run("Create without purchasable", func(t *testing.T) {
+		err := products.Create(&products.Product{
+			Name:               "Production Supply",
+			Price:              7000,
+			Purchasable:        false,
+			ManageStock:        true,
+			InventoryAccountID: &inventory.ID,
+		})
+
+		if err != nil {
+			t.Error("Should create without receivables and revenue accounts")
 		}
 	})
 }

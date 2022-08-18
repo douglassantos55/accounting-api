@@ -15,7 +15,7 @@ type Model struct {
 type QueryResult interface {
 	Get(dest interface{}) error
 	First(dest interface{}) error
-	With(relation string) QueryResult
+	With(relations ...string) QueryResult
 	Where(condition string, value interface{}) QueryResult
 	WhereHas(relation, condition string, value interface{}) QueryResult
 }
