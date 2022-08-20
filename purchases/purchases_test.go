@@ -16,10 +16,22 @@ func TestPurchases(t *testing.T) {
 	db, _ := database.GetConnection()
 
 	db.Migrate(&products.Product{})
-	db.Migrate(&purchases.Purchase{})
+	db.Migrate(&products.StockEntry{})
+	db.Migrate(&products.Purchase{})
 
-	accounts.Create("Revenue", accounts.Revenue, nil)
-	products.Create("Prod 1", 100, 322, 1, nil)
+	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
+	receivable, _ := accounts.Create("Receivables", accounts.Asset, nil)
+	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
+
+	products.Create(&products.Product{
+		Name:                "Prod 1",
+		Price:               100,
+		Purchasable:         true,
+		ManageStock:         true,
+		RevenueAccountID:    &revenue.ID,
+		ReceivableAccountID: &receivable.ID,
+		InventoryAccountID:  &inventory.ID,
+	})
 
 	t.Cleanup(db.CleanUp)
 
@@ -34,7 +46,6 @@ func TestPurchases(t *testing.T) {
 		if purchase.Price != 155.75 {
 			t.Errorf("Expected price %v, got %v", 155.75, purchase.Price)
 		}
-
 	})
 
 	t.Run("Create without product", func(t *testing.T) {
@@ -43,21 +54,25 @@ func TestPurchases(t *testing.T) {
 		}
 	})
 
-	t.Run("Increase product stock", func(t *testing.T) {
-		products.Create("Prod 2", 16, 8, 1, nil)
+	t.Run("Create stock entry", func(t *testing.T) {
+		products.Create(&products.Product{
+			Name:               "Prod 2",
+			Price:              16,
+			ManageStock:        true,
+			InventoryAccountID: &inventory.ID,
+		})
 
-		_, err := purchases.Create(2, 10, 157.11)
-		if err != nil {
-			t.Error(err)
-		}
+		purchases.Create(2, 4, 153.22)
+		purchases.Create(2, 4, 163.22)
+		purchases.Create(2, 10, 157.11)
 
 		var product *products.Product
-		if err := products.Find(2).First(&product); err != nil {
+		if err := products.Find(2).With("StockEntries").First(&product); err != nil {
 			t.Error(err)
 		}
 
-		if product.Stock != 18 {
-			t.Errorf("Expected %v stock, got %v", 18, product.Stock)
+		if product.Inventory() != 18 {
+			t.Errorf("Expected %v stock, got %v", 18, product.Inventory())
 		}
 	})
 
@@ -67,13 +82,13 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*purchases.Purchase
+		var items []*products.Purchase
 		if err := result.Get(&items); err != nil {
 			t.Error(err)
 		}
 
-		if len(items) != 2 {
-			t.Errorf("Expected %v purchases, got %v", 2, len(items))
+		if len(items) != 4 {
+			t.Errorf("Expected %v purchases, got %v", 4, len(items))
 		}
 	})
 
@@ -83,7 +98,7 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*purchases.Purchase
+		var items []*products.Purchase
 		if err := result.With("Product").Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -96,12 +111,12 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Get by ID", func(t *testing.T) {
-		result, err := purchases.Find(2)
+		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *purchases.Purchase
+		var purchase *products.Purchase
 		if err := result.First(&purchase); err != nil {
 			t.Error(err)
 		}
@@ -122,7 +137,7 @@ func TestPurchases(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		var items []*purchases.Purchase
+		var items []*products.Purchase
 		if err := result.Where("Qty > ?", 5).Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -133,49 +148,56 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		result, err := purchases.Find(2)
+		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *purchases.Purchase
+		var purchase *products.Purchase
 		if err := result.First(&purchase); err != nil {
 			t.Error(err)
 		}
 
-		prevQty := purchase.Qty
 		prevUpdate := purchase.UpdatedAt
 		prevProduct := purchase.ProductID
+		prevPrice := purchase.Price
+		prevQty := purchase.Qty
 
 		purchase.ProductID = 1
-		purchase.Qty = 99
+		purchase.Price = 355
+		purchase.Qty = 55
 
 		if err := purchases.Update(purchase); err != nil {
 			t.Error(err)
 		}
 
-		result, _ = purchases.Find(2)
+		result, _ = purchases.Find(4)
 		result.First(&purchase)
 
 		if prevUpdate == purchase.UpdatedAt {
 			t.Error("Should have updated")
 		}
-		if purchase.Qty == prevQty {
-			t.Errorf("Expected %v, got %v", 99, purchase.Qty)
-		}
 
 		if prevProduct == purchase.ProductID {
 			t.Errorf("Expected product %v, got %v", 1, purchase.ProductID)
 		}
+
+		if prevPrice == purchase.Price {
+			t.Error("Should have updated price")
+		}
+
+		if prevQty == purchase.Qty {
+			t.Error("Should have updated qty")
+		}
 	})
 
 	t.Run("Update without product", func(t *testing.T) {
-		result, err := purchases.Find(2)
+		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *purchases.Purchase
+		var purchase *products.Purchase
 		if err := result.First(&purchase); err != nil {
 			t.Error(err)
 		}
@@ -187,52 +209,51 @@ func TestPurchases(t *testing.T) {
 		}
 	})
 
-	t.Run("Updates product stock", func(t *testing.T) {
-		prod, _ := products.Create("Prod 3", 11, 2, 1, nil)
-
-		result, err := purchases.Find(2)
+	t.Run("Updates stock entry", func(t *testing.T) {
+		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *purchases.Purchase
+		var purchase *products.Purchase
 		if err := result.First(&purchase); err != nil {
 			t.Error(err)
 		}
 
 		purchase.Qty = 8
-		purchase.ProductID = prod.ID
 
 		if err := purchases.Update(purchase); err != nil {
 			t.Error(err)
 		}
 
-		products.Find(3).First(&prod)
-		if prod.Stock != 10 {
-			t.Errorf("Expected stock %v , got %v", 10, prod.Stock)
+		var prod *products.Product
+		products.Find(1).With("StockEntries").First(&prod)
+
+		if prod.Inventory() != 13 {
+			t.Errorf("Expected stock %v , got %v", 13, prod.Inventory())
 		}
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		if err := purchases.Delete(2); err != nil {
+		if err := purchases.Delete(4); err != nil {
 			t.Error(err)
 		}
 
-		result, err := purchases.Find(2)
+		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *purchases.Purchase
+		var purchase *products.Purchase
 		if err := result.First(&purchase); err == nil {
 			t.Error("Should have deleted purchase")
 		}
 
 		var prod *products.Product
-		products.Find(3).First(&prod)
+		products.Find(1).First(&prod)
 
-		if prod.Stock != 2 {
-			t.Errorf("Expected stock %v , got %v", 2, prod.Stock)
+		if prod.Inventory() != 0 {
+			t.Errorf("Expected stock %v , got %v", 0, prod.Inventory())
 		}
 	})
 }

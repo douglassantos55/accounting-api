@@ -14,11 +14,22 @@ var (
 	ErrInventoryAccountMissing  = errors.New("Inventory account is required")
 )
 
+type Purchase struct {
+	database.Model
+	Qty          uint
+	Price        float64
+	ProductID    uint
+	Product      *Product
+	StockEntryID *uint
+	StockEntry   *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
+}
+
 type StockEntry struct {
-	Qty       uint
-	Price     float64
-	ProductID uint
-	Product   *Product
+	database.Model
+	Qty        uint
+	Price      float64
+	ProductID  uint
+	Product    *Product
 }
 
 type Product struct {
@@ -35,7 +46,15 @@ type Product struct {
 	InventoryAccount    *accounts.Account
 	VendorID            *uint
 	Vendor              *vendors.Vendor
-	StockEntries        []*StockEntry
+	StockEntries        []*StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
+}
+
+func (p Product) Inventory() uint {
+	var inventory uint = 0
+	for _, entry := range p.StockEntries {
+		inventory += entry.Qty
+	}
+	return inventory
 }
 
 func Create(product *Product) error {

@@ -5,32 +5,25 @@ import (
 	"example.com/accounting/products"
 )
 
-type Purchase struct {
-	database.Model
-	Qty       uint
-	Price     float64
-	ProductID uint
-	Product   *products.Product
-}
-
-func Create(productId, qty uint, price float64) (*Purchase, error) {
+func Create(productId, qty uint, price float64) (*products.Purchase, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	purchase := &Purchase{
+	purchase := &products.Purchase{
 		Qty:       qty,
 		Price:     price,
 		ProductID: productId,
+		StockEntry: &products.StockEntry{
+			Price:     price,
+			Qty:       qty,
+			ProductID: productId,
+		},
 	}
 
 	if err := db.Create(purchase); err != nil {
 		return nil, err
-	}
-
-	if err := updateProductStock(productId, qty); err != nil {
-		return purchase, err
 	}
 
 	return purchase, nil
@@ -41,7 +34,7 @@ func List() (database.QueryResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.Find(&Purchase{}), nil
+	return db.Find(&products.Purchase{}), nil
 }
 
 func Find(id uint) (database.QueryResult, error) {
@@ -49,34 +42,25 @@ func Find(id uint) (database.QueryResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.Find(&Purchase{}).Where("ID", id), nil
+	return db.Find(&products.Purchase{}).Where("ID", id), nil
 }
 
-func Update(purchase *Purchase) error {
+func Update(purchase *products.Purchase) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
 	}
 
+	if purchase.StockEntryID != nil {
+		if purchase.StockEntry == nil {
+			db.Find(&products.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
+		}
+		purchase.StockEntry.Qty = purchase.Qty
+		purchase.StockEntry.Price = purchase.Price
+		purchase.StockEntry.ProductID = purchase.ProductID
+	}
+
 	if err := db.Update(purchase); err != nil {
-		return err
-	}
-
-	if err := updateProductStock(purchase.ProductID, purchase.Qty); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func updateProductStock(productID, qty uint) error {
-	var product *products.Product
-	if err := products.Find(productID).First(&product); err != nil {
-		return err
-	}
-
-	product.Stock += qty
-	if err := products.Update(product); err != nil {
 		return err
 	}
 
@@ -94,14 +78,14 @@ func Delete(id uint) error {
 		return err
 	}
 
-	var purchase *Purchase
+	var purchase *products.Purchase
 	if err := result.First(&purchase); err != nil {
 		return err
 	}
 
-	if err := db.Delete(&Purchase{}, id); err != nil {
+	if err := db.Delete(&products.Purchase{}, id); err != nil {
 		return err
 	}
 
-	return updateProductStock(purchase.ProductID, -purchase.Qty)
+	return nil
 }
