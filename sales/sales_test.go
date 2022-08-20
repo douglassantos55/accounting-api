@@ -9,6 +9,7 @@ import (
 	"example.com/accounting/database"
 	"example.com/accounting/events"
 	"example.com/accounting/products"
+	"example.com/accounting/purchases"
 	"example.com/accounting/sales"
 )
 
@@ -21,11 +22,14 @@ func TestSales(t *testing.T) {
 	db.Migrate(&sales.Item{})
 	db.Migrate(&sales.Sale{})
 	db.Migrate(&accounts.Account{})
+	db.Migrate(&products.Purchase{})
 	db.Migrate(&products.Product{})
+	db.Migrate(&products.StockEntry{})
 
 	t.Cleanup(db.CleanUp)
 
 	accounts.Create("Revenue", accounts.Revenue, nil)
+
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
 	t.Run("Create", func(t *testing.T) {
@@ -33,28 +37,32 @@ func TestSales(t *testing.T) {
 
 		items := []*sales.Item{
 			{
-				Qty:     1,
-				Price:   100,
-				Product: &products.Product{Name: "Mouse", AccountID: 1},
+				Qty:   1,
+				Price: 100,
+				Product: &products.Product{Name: "Mouse", StockEntries: []*products.StockEntry{
+					{Qty: 100, Price: 99.3},
+				}},
 			},
 			{
-				Qty:     2,
-				Price:   30,
-				Product: &products.Product{Name: "Mousepad", AccountID: 1},
+				Qty:   2,
+				Price: 30,
+				Product: &products.Product{Name: "Mousepad", StockEntries: []*products.StockEntry{
+					{Qty: 100, Price: 29.5},
+				}},
 			},
 		}
 
 		sale, err := sales.Create(customer, items)
 		if err != nil {
 			t.Error(err)
-		}
+		} else {
+			if sale.ID == 0 {
+				t.Error("Should have saved sale")
+			}
 
-		if sale.ID == 0 {
-			t.Error("Should have saved sale")
-		}
-
-		if len(sale.Items) != 2 {
-			t.Errorf("Expected %v items, got %v", 2, len(sale.Items))
+			if len(sale.Items) != 2 {
+				t.Errorf("Expected %v items, got %v", 2, len(sale.Items))
+			}
 		}
 	})
 
@@ -63,12 +71,12 @@ func TestSales(t *testing.T) {
 			{
 				Qty:     1,
 				Price:   100,
-				Product: &products.Product{Name: "Mouse", AccountID: 1},
+				Product: &products.Product{Name: "Mouse"},
 			},
 			{
 				Qty:     2,
 				Price:   30,
-				Product: &products.Product{Name: "Mousepad", AccountID: 1},
+				Product: &products.Product{Name: "Mousepad"},
 			},
 		}
 
@@ -91,12 +99,32 @@ func TestSales(t *testing.T) {
 		}
 	})
 
-	t.Run("List", func(t *testing.T) {
-		sales.Create(&customers.Customer{Name: "Jane Doe"}, []*sales.Item{
+	t.Run("Create without stock", func(t *testing.T) {
+		_, err := sales.Create(&customers.Customer{}, []*sales.Item{
 			{
 				Qty:     1,
 				Price:   100,
-				Product: &products.Product{Name: "Mouse", Stock: 5, AccountID: 1},
+				Product: &products.Product{Name: "Mouse"},
+			},
+		})
+
+		if err == nil {
+			t.Error("Should not create without stock")
+		}
+
+		if !errors.Is(err, sales.ErrNotEnoughStock) {
+			t.Errorf("Should return ErrNotEnoughStock, got %v", err)
+		}
+	})
+
+	t.Run("List", func(t *testing.T) {
+		sales.Create(&customers.Customer{Name: "Jane Doe"}, []*sales.Item{
+			{
+				Qty:   1,
+				Price: 100,
+				Product: &products.Product{Name: "Mouse", StockEntries: []*products.StockEntry{
+					{Qty: 11, Price: 101.37},
+				}},
 			},
 		})
 
@@ -122,7 +150,7 @@ func TestSales(t *testing.T) {
 	t.Run("List with Customer and Items", func(t *testing.T) {
 		var items []*sales.Sale
 
-		if err := sales.List().With("Customer").With("Items").Get(&items); err != nil {
+		if err := sales.List().With("Customer", "Items").Get(&items); err != nil {
 			t.Error(err)
 		}
 
@@ -149,7 +177,7 @@ func TestSales(t *testing.T) {
 
 	t.Run("Get with Customer and Items", func(t *testing.T) {
 		var sale *sales.Sale
-		if err := sales.Find(2).With("Customer").With("Items").First(&sale); err != nil {
+		if err := sales.Find(2).With("Customer", "Items").First(&sale); err != nil {
 			t.Error(err)
 		}
 
@@ -192,15 +220,41 @@ func TestSales(t *testing.T) {
 		}
 	})
 
-	t.Run("Updates product stock", func(t *testing.T) {
-		prod, _ := products.Create("Prod", 15, 100, 1, nil)
-		customer, _ := customers.Create("Customer", "", "", "", nil)
+	t.Run("Reduces product stock", func(t *testing.T) {
+		prod := &products.Product{
+			Name:  "Prod",
+			Price: 15,
+		}
 
-		sales.Create(customer, []*sales.Item{{Qty: 50, ProductID: prod.ID}})
-		products.Find(prod.ID).First(&prod)
+		if err := products.Create(prod); err != nil {
+			t.Error(err)
+		}
 
-		if prod.Stock != 50 {
-			t.Errorf("Expected stock %v, got %v", 50, prod.Stock)
+		if _, err := purchases.Create(prod.ID, 36, 55.3); err != nil {
+			t.Error(err)
+		}
+		if _, err := purchases.Create(prod.ID, 34, 55.3); err != nil {
+			t.Error(err)
+		}
+
+		customer, err := customers.Create("Customer", "", "", "", nil)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		if _, err := sales.Create(customer, []*sales.Item{{Qty: 50, ProductID: prod.ID}}); err != nil {
+			t.Error(err)
+		}
+
+		products.Find(prod.ID).With("StockEntries").First(&prod)
+
+		if len(prod.StockEntries) != 1 {
+			t.Errorf("Expected %v entry, got %v", 1, len(prod.StockEntries))
+		}
+
+		if prod.Inventory() != 20 {
+			t.Errorf("Expected stock %v, got %v", 20, prod.Inventory())
 		}
 	})
 }

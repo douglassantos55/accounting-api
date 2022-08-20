@@ -12,6 +12,7 @@ import (
 var (
 	ErrItemsMissing    = errors.New("Items are required")
 	ErrCustomerMissing = errors.New("Customer is required")
+	ErrNotEnoughStock  = errors.New("There is not enough in stock")
 )
 
 type Sale struct {
@@ -33,12 +34,24 @@ type Item struct {
 }
 
 func ReduceProductStock(sale interface{}) {
+	db, _ := database.GetConnection()
+
 	for _, item := range sale.(*Sale).Items {
 		var product *products.Product
-		products.Find(item.ProductID).First(&product)
+		products.Find(item.ProductID).With("StockEntries").First(&product)
 
-		product.Stock -= item.Qty
-		products.Update(product)
+		left := item.Qty
+		// TODO: consider FIFO or LIFO
+		for _, entry := range product.StockEntries {
+			qty := entry.Qty
+			if entry.Qty > left {
+				entry.Qty -= uint(left)
+				db.Update(&entry)
+			} else {
+				db.Delete(&products.StockEntry{}, entry.ID)
+			}
+			left -= qty
+		}
 	}
 }
 
@@ -49,6 +62,16 @@ func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
 
 	if len(items) == 0 {
 		return nil, ErrItemsMissing
+	}
+
+	for _, item := range items {
+		if item.Product == nil {
+			products.Find(item.ProductID).With("StockEntries").First(&item.Product)
+		}
+
+		if item.Product.Inventory() < item.Qty {
+			return nil, ErrNotEnoughStock
+		}
 	}
 
 	db, err := database.GetConnection()
