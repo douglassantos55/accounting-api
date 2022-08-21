@@ -22,6 +22,8 @@ func TestSales(t *testing.T) {
 	db.Migrate(&sales.Item{})
 	db.Migrate(&sales.Sale{})
 	db.Migrate(&accounts.Account{})
+	db.Migrate(&accounts.Entry{})
+	db.Migrate(&accounts.Transaction{})
 	db.Migrate(&products.Purchase{})
 	db.Migrate(&products.Product{})
 	db.Migrate(&products.StockEntry{})
@@ -29,6 +31,7 @@ func TestSales(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	accounts.Create("Revenue", accounts.Revenue, nil)
+	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
 
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
@@ -39,16 +42,22 @@ func TestSales(t *testing.T) {
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{Name: "Mouse", StockEntries: []*products.StockEntry{
-					{Qty: 100, Price: 99.3},
-				}},
+				Product: &products.Product{
+					Name:               "Mouse",
+					InventoryAccountID: inventory.ID,
+					StockEntries: []*products.StockEntry{
+						{Qty: 100, Price: 99.3},
+					}},
 			},
 			{
 				Qty:   2,
 				Price: 30,
-				Product: &products.Product{Name: "Mousepad", StockEntries: []*products.StockEntry{
-					{Qty: 100, Price: 29.5},
-				}},
+				Product: &products.Product{
+					Name:               "Mousepad",
+					InventoryAccountID: inventory.ID,
+					StockEntries: []*products.StockEntry{
+						{Qty: 100, Price: 29.5},
+					}},
 			},
 		}
 
@@ -69,14 +78,20 @@ func TestSales(t *testing.T) {
 	t.Run("Create without customer", func(t *testing.T) {
 		items := []*sales.Item{
 			{
-				Qty:     1,
-				Price:   100,
-				Product: &products.Product{Name: "Mouse"},
+				Qty:   1,
+				Price: 100,
+				Product: &products.Product{
+					Name:               "Mouse",
+					InventoryAccountID: inventory.ID,
+				},
 			},
 			{
-				Qty:     2,
-				Price:   30,
-				Product: &products.Product{Name: "Mousepad"},
+				Qty:   2,
+				Price: 30,
+				Product: &products.Product{
+					Name:               "Mousepad",
+					InventoryAccountID: inventory.ID,
+				},
 			},
 		}
 
@@ -102,9 +117,12 @@ func TestSales(t *testing.T) {
 	t.Run("Create without stock", func(t *testing.T) {
 		_, err := sales.Create(&customers.Customer{}, []*sales.Item{
 			{
-				Qty:     1,
-				Price:   100,
-				Product: &products.Product{Name: "Mouse"},
+				Qty:   1,
+				Price: 100,
+				Product: &products.Product{
+					Name:               "Mouse",
+					InventoryAccountID: inventory.ID,
+				},
 			},
 		})
 
@@ -122,9 +140,12 @@ func TestSales(t *testing.T) {
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{Name: "Mouse", StockEntries: []*products.StockEntry{
-					{Qty: 11, Price: 101.37},
-				}},
+				Product: &products.Product{
+					Name:               "Mouse",
+					InventoryAccountID: inventory.ID,
+					StockEntries: []*products.StockEntry{
+						{Qty: 11, Price: 101.37},
+					}},
 			},
 		})
 
@@ -222,8 +243,9 @@ func TestSales(t *testing.T) {
 
 	t.Run("Reduces product stock", func(t *testing.T) {
 		prod := &products.Product{
-			Name:  "Prod",
-			Price: 15,
+			Name:               "Prod",
+			Price:              15,
+			InventoryAccountID: inventory.ID,
 		}
 
 		if err := products.Create(prod); err != nil {

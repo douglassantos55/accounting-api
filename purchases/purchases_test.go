@@ -15,6 +15,7 @@ func TestPurchases(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
+	db.Migrate(&accounts.Account{})
 	db.Migrate(&accounts.Entry{})
 	db.Migrate(&accounts.Transaction{})
 	db.Migrate(&products.Product{})
