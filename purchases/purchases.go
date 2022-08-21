@@ -51,20 +51,23 @@ func Update(purchase *products.Purchase) error {
 		return err
 	}
 
-	if purchase.StockEntryID != nil {
-		if purchase.StockEntry == nil {
-			db.Find(&products.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
+	return db.Transaction(func() error {
+		if purchase.StockEntryID != nil {
+			if purchase.StockEntry == nil {
+				db.Find(&products.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
+			}
+
+			purchase.StockEntry.Qty = purchase.Qty
+			purchase.StockEntry.Price = purchase.Price
+			purchase.StockEntry.ProductID = purchase.ProductID
 		}
-		purchase.StockEntry.Qty = purchase.Qty
-		purchase.StockEntry.Price = purchase.Price
-		purchase.StockEntry.ProductID = purchase.ProductID
-	}
 
-	if err := db.Update(purchase); err != nil {
-		return err
-	}
+		if err := db.Update(purchase); err != nil {
+			return err
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func Delete(id uint) error {
@@ -73,19 +76,25 @@ func Delete(id uint) error {
 		return err
 	}
 
-	result, err := Find(id)
-	if err != nil {
-		return err
-	}
+	return db.Transaction(func() error {
+		result, err := Find(id)
+		if err != nil {
+			return err
+		}
 
-	var purchase *products.Purchase
-	if err := result.First(&purchase); err != nil {
-		return err
-	}
+		var purchase *products.Purchase
+		if err := result.First(&purchase); err != nil {
+			return err
+		}
 
-	if err := db.Delete(&products.Purchase{}, id); err != nil {
-		return err
-	}
+		if err := db.Delete(&products.Purchase{}, id); err != nil {
+			return err
+		}
 
-	return nil
+		if err := db.Delete(&products.StockEntry{}, *purchase.StockEntryID); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }

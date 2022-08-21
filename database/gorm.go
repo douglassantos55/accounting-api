@@ -71,6 +71,12 @@ func (g *GormRepository) Migrate(model interface{}) error {
 	return g.db.AutoMigrate(model)
 }
 
+func (g *GormRepository) Transaction(callback func() error) error {
+	return g.db.Transaction(func(tx *gorm.DB) error {
+		return callback()
+	})
+}
+
 func (g *GormRepository) CleanUp() {
 	migrator := g.db.Migrator()
 	tables, _ := migrator.GetTables()

@@ -221,16 +221,24 @@ func TestPurchases(t *testing.T) {
 		}
 
 		purchase.Qty = 8
+		purchase.ProductID = 2
 
 		if err := purchases.Update(purchase); err != nil {
 			t.Error(err)
 		}
 
 		var prod *products.Product
-		products.Find(1).With("StockEntries").First(&prod)
+		products.Find(2).With("StockEntries").First(&prod)
 
-		if prod.Inventory() != 13 {
-			t.Errorf("Expected stock %v , got %v", 13, prod.Inventory())
+		if prod.Inventory() != 16 {
+			t.Errorf("Expected stock %v , got %v", 16, prod.Inventory())
+		}
+
+		var prod1 *products.Product
+		products.Find(1).With("StockEntries").First(&prod1)
+
+		if prod1.Inventory() != 5 {
+			t.Errorf("Expected stock %v , got %v", 5, prod1.Inventory())
 		}
 	})
 
@@ -250,10 +258,10 @@ func TestPurchases(t *testing.T) {
 		}
 
 		var prod *products.Product
-		products.Find(1).First(&prod)
+		products.Find(2).With("StockEntries").First(&prod)
 
-		if prod.Inventory() != 0 {
-			t.Errorf("Expected stock %v , got %v", 0, prod.Inventory())
+		if prod.Inventory() != 8 {
+			t.Errorf("Expected stock %v , got %v", 8, prod.Inventory())
 		}
 	})
 }

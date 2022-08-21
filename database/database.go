@@ -26,6 +26,7 @@ type Repository interface {
 	Update(model interface{}) error
 	Delete(model interface{}, id uint) error
 	Migrate(model interface{}) error
+	Transaction(callback func() error) error
 	CleanUp()
 }
 
