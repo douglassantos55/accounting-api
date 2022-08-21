@@ -37,12 +37,11 @@ type Product struct {
 	Name                string
 	Price               float64
 	Purchasable         bool
-	ManageStock         bool
 	RevenueAccountID    *uint
 	RevenueAccount      *accounts.Account
 	ReceivableAccountID *uint
 	ReceivableAccount   *accounts.Account
-	InventoryAccountID  *uint
+	InventoryAccountID  uint
 	InventoryAccount    *accounts.Account
 	VendorID            *uint
 	Vendor              *vendors.Vendor
@@ -128,10 +127,6 @@ func validateAccounts(product *Product) error {
 		if product.ReceivableAccountID == nil {
 			return ErrReceivableAccountMissing
 		}
-	}
-
-	if product.ManageStock && product.InventoryAccountID == nil {
-		return ErrInventoryAccountMissing
 	}
 
 	return nil

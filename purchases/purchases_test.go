@@ -27,10 +27,9 @@ func TestPurchases(t *testing.T) {
 		Name:                "Prod 1",
 		Price:               100,
 		Purchasable:         true,
-		ManageStock:         true,
 		RevenueAccountID:    &revenue.ID,
 		ReceivableAccountID: &receivable.ID,
-		InventoryAccountID:  &inventory.ID,
+		InventoryAccountID:  inventory.ID,
 	})
 
 	t.Cleanup(db.CleanUp)
@@ -58,8 +57,7 @@ func TestPurchases(t *testing.T) {
 		products.Create(&products.Product{
 			Name:               "Prod 2",
 			Price:              16,
-			ManageStock:        true,
-			InventoryAccountID: &inventory.ID,
+			InventoryAccountID: inventory.ID,
 		})
 
 		purchases.Create(2, 4, 153.22)
