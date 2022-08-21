@@ -1,7 +1,9 @@
 package purchases
 
 import (
+	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/entries"
 	"example.com/accounting/products"
 )
 
@@ -22,7 +24,25 @@ func Create(productId, qty uint, price float64) (*products.Purchase, error) {
 		},
 	}
 
-	if err := db.Create(purchase); err != nil {
+	if err := db.Transaction(func() error {
+		if err := db.Create(purchase); err != nil {
+			return err
+		}
+
+		var product *products.Product
+		if err := products.Find(productId).First(&product); err != nil {
+			return err
+		}
+
+		if _, err := entries.Create("Purchase of product", []*accounts.Transaction{
+			{Value: price * float64(qty), AccountID: product.InventoryAccountID},
+			{Value: price * float64(qty), AccountID: 1},
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 

@@ -9,46 +9,13 @@ import (
 
 var ErrEntryNotBalanced = errors.New("Entry not balanced")
 
-type Entry struct {
-	database.Model
-	Description  string
-	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
-}
-
-func (e Entry) IsBalanced() bool {
-	totalDebit := 0.0
-	totalCredit := 0.0
-	for _, transaction := range e.Transactions {
-		account := transaction.Account
-		if account == nil {
-			accounts.Find(transaction.AccountID).First(&account)
-		}
-
-		if account.TransactionType() == accounts.Debit {
-			totalDebit += transaction.Value
-		} else {
-			totalCredit += transaction.Value
-		}
-	}
-	return totalDebit == totalCredit
-}
-
-type Transaction struct {
-	database.Model
-	Value     float64
-	AccountID uint
-	Account   *accounts.Account
-	EntryID   uint
-	Entry     *Entry
-}
-
-func Create(description string, transactions []*Transaction) (*Entry, error) {
+func Create(description string, transactions []*accounts.Transaction) (*accounts.Entry, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	entry := &Entry{
+	entry := &accounts.Entry{
 		Description:  description,
 		Transactions: transactions,
 	}
@@ -69,7 +36,7 @@ func List() (database.QueryResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.Find(&Entry{}), nil
+	return db.Find(&accounts.Entry{}), nil
 }
 
 func Find(id uint) (database.QueryResult, error) {
@@ -77,10 +44,10 @@ func Find(id uint) (database.QueryResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.Find(&Entry{}).Where("ID", id), nil
+	return db.Find(&accounts.Entry{}).Where("ID", id), nil
 }
 
-func Update(entry *Entry) error {
+func Update(entry *accounts.Entry) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
@@ -93,5 +60,5 @@ func Delete(id uint) error {
 	if err != nil {
 		return err
 	}
-	return db.Delete(&Entry{}, id)
+	return db.Delete(&accounts.Entry{}, id)
 }

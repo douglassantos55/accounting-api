@@ -19,17 +19,17 @@ type Purchase struct {
 	Qty          uint
 	Price        float64
 	ProductID    uint
-	Product      *Product
+	Product      *Product `gorm:"constraint:OnDelete:CASCADE;"`
 	StockEntryID *uint
 	StockEntry   *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
 type StockEntry struct {
 	database.Model
-	Qty        uint
-	Price      float64
-	ProductID  uint
-	Product    *Product
+	Qty       uint
+	Price     float64
+	ProductID uint
+	Product   *Product
 }
 
 type Product struct {
@@ -38,14 +38,14 @@ type Product struct {
 	Price               float64
 	Purchasable         bool
 	RevenueAccountID    *uint
-	RevenueAccount      *accounts.Account
+	RevenueAccount      *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
 	ReceivableAccountID *uint
-	ReceivableAccount   *accounts.Account
+	ReceivableAccount   *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
 	InventoryAccountID  uint
-	InventoryAccount    *accounts.Account
+	InventoryAccount    *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
 	VendorID            *uint
-	Vendor              *vendors.Vendor
-	StockEntries        []*StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
+	Vendor              *vendors.Vendor `gorm:"constraint:OnDelete:SET NULL;"`
+	StockEntries        []*StockEntry   `gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (p Product) Inventory() uint {

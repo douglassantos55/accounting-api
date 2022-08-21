@@ -15,8 +15,9 @@ func TestPurchases(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
+	db.Migrate(&accounts.Entry{})
+	db.Migrate(&accounts.Transaction{})
 	db.Migrate(&products.Product{})
-	db.Migrate(&products.StockEntry{})
 	db.Migrate(&products.Purchase{})
 
 	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
@@ -260,6 +261,33 @@ func TestPurchases(t *testing.T) {
 
 		if prod.Inventory() != 8 {
 			t.Errorf("Expected stock %v , got %v", 8, prod.Inventory())
+		}
+	})
+
+	t.Run("Increase inventory account", func(t *testing.T) {
+		account, err := accounts.Create("Inv", accounts.Asset, nil)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		products.Create(&products.Product{
+			Name:               "Mice",
+			Price:              33.5,
+			InventoryAccountID: account.ID,
+		})
+
+		if _, err := purchases.Create(3, 100, 26.5); err != nil {
+			t.Error(err)
+		}
+
+		var inventory *accounts.Account
+		if err := accounts.Find(account.ID).With("Transactions").First(&inventory); err != nil {
+			t.Error(err)
+		}
+
+		if inventory.Balance() != 2650.0 {
+			t.Errorf("Expected balance %v, got %v", 2650.0, inventory.Balance())
 		}
 	})
 }
