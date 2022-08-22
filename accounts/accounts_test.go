@@ -1,12 +1,11 @@
 package accounts_test
 
 import (
-	"database/sql"
-	"fmt"
 	"testing"
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
 func TestAccount(t *testing.T) {
@@ -14,27 +13,10 @@ func TestAccount(t *testing.T) {
 	t.Setenv("DB_CONNECTION", "file::memory:?cache=shared")
 
 	db, _ := database.GetConnection()
-	db.Migrate(&accounts.Account{})
-
-	t.Run("Raw SQL", func(t *testing.T) {
-		db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
-		if err != nil {
-			t.Error(err)
-		}
-
-		rows, _ := db.Query("SELECT * FROM accounts")
-		var items []*accounts.Account
-
-		for rows.Next() {
-			var item *accounts.Account
-			rows.Scan(&item)
-			items = append(items, item)
-		}
-		fmt.Printf("items: %v\n", items)
-	})
+	db.Migrate(&models.Account{})
 
 	t.Run("Create", func(t *testing.T) {
-		account, err := accounts.Create("Cash", accounts.Asset, nil)
+		account, err := accounts.Create("Cash", models.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -50,9 +32,9 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Create With Parent", func(t *testing.T) {
-		accounts.Create("Assets", accounts.Asset, nil)
+		accounts.Create("Assets", models.Asset, nil)
 		accountID := uint(2)
-		cash, err := accounts.Create("Receivables", accounts.Asset, &accountID)
+		cash, err := accounts.Create("Receivables", models.Asset, &accountID)
 
 		if err != nil {
 			t.Error(err)
@@ -68,7 +50,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		var items []*accounts.Account
+		var items []*models.Account
 		err := accounts.List().Get(&items)
 
 		if err != nil {
@@ -81,7 +63,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Get by ID", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 		err := accounts.Find(3).First(&account)
 
 		if err != nil {
@@ -94,7 +76,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Get with Parent", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 		err := accounts.Find(3).With("Parent").First(&account)
 
 		if err != nil {
@@ -111,7 +93,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Get with children", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 		err := accounts.Find(2).With("Children").First(&account)
 
 		if err != nil {
@@ -124,7 +106,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 
 		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
@@ -147,7 +129,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Update Remove Parent", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
 		}
@@ -164,7 +146,7 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Update With Parent", func(t *testing.T) {
-		var account *accounts.Account
+		var account *models.Account
 		if err := accounts.Find(3).First(&account); err != nil {
 			t.Error(err)
 		}
@@ -189,7 +171,7 @@ func TestAccount(t *testing.T) {
 			t.Error(err)
 		}
 
-		var account *accounts.Account
+		var account *models.Account
 		if err := accounts.Find(3).First(&account); err == nil {
 			t.Error("Account should be deleted")
 		}

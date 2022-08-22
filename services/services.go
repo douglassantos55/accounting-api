@@ -1,24 +1,17 @@
 package services
 
 import (
-	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
-type Service struct {
-	database.Model
-	Name      string
-	AccountID uint
-	Account   *accounts.Account
-}
-
-func Create(name string, accountID uint) (*Service, error) {
+func Create(name string, accountID uint) (*models.Service, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	service := &Service{
+	service := &models.Service{
 		Name:      name,
 		AccountID: accountID,
 	}
@@ -35,7 +28,7 @@ func List() database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Service{})
+	return db.Find(&models.Service{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -43,10 +36,10 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Service{}).Where("ID", id)
+	return db.Find(&models.Service{}).Where("ID", id)
 }
 
-func Update(service *Service) error {
+func Update(service *models.Service) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
@@ -59,5 +52,5 @@ func Delete(id uint) error {
 	if err != nil {
 		return nil
 	}
-	return db.Delete(&Service{}, id)
+	return db.Delete(&models.Service{}, id)
 }

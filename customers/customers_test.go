@@ -5,6 +5,7 @@ import (
 
 	"example.com/accounting/customers"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
 func TestCustomers(t *testing.T) {
@@ -12,16 +13,16 @@ func TestCustomers(t *testing.T) {
 	t.Setenv("DB_CONNECTION", "file::memory:?cache=shared")
 
 	db, _ := database.GetConnection()
-	db.Migrate(&customers.Customer{})
+	db.Migrate(&models.Customer{})
 
 	t.Run("Create", func(t *testing.T) {
-		address := &customers.Address{
-			"rua abc",
-			"7979",
-			"Centro",
-			"Sao Paulo",
-			"SP",
-			"13200-000",
+		address := &models.Address{
+			Street:       "rua abc",
+			Number:       "7979",
+			Neighborhood: "Centro",
+			City:         "Sao Paulo",
+			State:        "SP",
+			Postcode:     "13200-000",
 		}
 
 		customer, err := customers.Create(
@@ -70,7 +71,7 @@ func TestCustomers(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*customers.Customer
+		var items []*models.Customer
 		if err := customers.List().Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -80,7 +81,7 @@ func TestCustomers(t *testing.T) {
 	})
 
 	t.Run("Get by ID", func(t *testing.T) {
-		var customer *customers.Customer
+		var customer *models.Customer
 
 		if err := customers.Find(1).First(&customer); err != nil {
 			t.Error(err)
@@ -101,7 +102,7 @@ func TestCustomers(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		var customer *customers.Customer
+		var customer *models.Customer
 		if err := customers.Find(1).First(&customer); err != nil {
 			t.Error(err)
 		}
@@ -127,7 +128,7 @@ func TestCustomers(t *testing.T) {
 	})
 
 	t.Run("Update without address", func(t *testing.T) {
-		var customer *customers.Customer
+		var customer *models.Customer
 		if err := customers.Find(1).First(&customer); err != nil {
 			t.Error(err)
 		}
@@ -148,7 +149,7 @@ func TestCustomers(t *testing.T) {
 			t.Error(err)
 		}
 
-		if err := customers.Find(3).First(&customers.Customer{}); err == nil {
+		if err := customers.Find(3).First(&models.Customer{}); err == nil {
 			t.Error("Customer should have been deleted")
 		}
 	})

@@ -2,95 +2,17 @@ package accounts
 
 import (
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
-type AccountType uint
-type TransactionType uint
-
-const (
-	Debit TransactionType = iota
-	Credit
-)
-
-const (
-	Asset AccountType = iota
-	Liability
-	Equity
-	Dividend
-	Expense
-	Revenue
-)
-
-type Account struct {
-	database.Model
-	Name         string
-	Type         AccountType
-	ParentID     *uint
-	Parent       *Account
-	Children     []*Account     `gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
-	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
-}
-
-func (a Account) Balance() float64 {
-	balance := 0.0
-	for _, transaction := range a.Transactions {
-		balance += transaction.Value
-	}
-	return balance
-}
-
-func (a Account) TransactionType() TransactionType {
-	switch a.Type {
-	case Dividend, Expense, Asset:
-		return Debit
-	case Liability, Equity, Revenue:
-		return Credit
-	default:
-		panic("Invalid account type")
-	}
-}
-
-type Entry struct {
-	database.Model
-	Description  string
-	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
-}
-
-func (e Entry) IsBalanced() bool {
-	totalDebit := 0.0
-	totalCredit := 0.0
-	for _, transaction := range e.Transactions {
-		account := transaction.Account
-		if account == nil {
-			Find(transaction.AccountID).First(&account)
-		}
-
-		if account.TransactionType() == Debit {
-			totalDebit += transaction.Value
-		} else {
-			totalCredit += transaction.Value
-		}
-	}
-	return totalDebit == totalCredit
-}
-
-type Transaction struct {
-	database.Model
-	Value     float64
-	AccountID uint
-	Account   *Account
-	EntryID   uint
-	Entry     *Entry
-}
-
-func Create(name string, accType AccountType, parentID *uint) (*Account, error) {
+func Create(name string, accType models.AccountType, parentID *uint) (*models.Account, error) {
 	db, err := database.GetConnection()
 
 	if err != nil {
 		return nil, err
 	}
 
-	account := &Account{
+	account := &models.Account{
 		Name:     name,
 		Type:     accType,
 		ParentID: parentID,
@@ -110,7 +32,7 @@ func List() database.QueryResult {
 		return nil
 	}
 
-	return db.Find(&Account{})
+	return db.Find(&models.Account{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -118,10 +40,10 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Account{}).Where("ID", id)
+	return db.Find(&models.Account{}).Where("ID", id)
 }
 
-func Update(account *Account) error {
+func Update(account *models.Account) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
@@ -134,8 +56,8 @@ func Delete(id uint) error {
 	if err != nil {
 		return err
 	}
-	if err := Find(id).First(&Account{}); err != nil {
+	if err := Find(id).First(&models.Account{}); err != nil {
 		return err
 	}
-	return db.Delete(&Account{}, id)
+	return db.Delete(&models.Account{}, id)
 }

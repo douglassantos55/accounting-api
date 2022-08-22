@@ -3,9 +3,9 @@ package sales
 import (
 	"errors"
 
-	"example.com/accounting/customers"
 	"example.com/accounting/database"
 	"example.com/accounting/events"
+	"example.com/accounting/models"
 	"example.com/accounting/products"
 )
 
@@ -18,7 +18,7 @@ var (
 type Sale struct {
 	database.Model
 	Items    []*Item `gorm:"constraint:OnDelete:CASCADE;"`
-	Customer *customers.Customer
+	Customer *models.Customer
 
 	CustomerID uint
 }
@@ -28,7 +28,7 @@ type Item struct {
 	Qty       uint
 	Price     float64
 	ProductID uint
-	Product   *products.Product
+	Product   *models.Product
 	SaleID    uint
 	Sale      *Sale
 }
@@ -37,7 +37,7 @@ func ReduceProductStock(sale interface{}) {
 	db, _ := database.GetConnection()
 
 	for _, item := range sale.(*Sale).Items {
-		var product *products.Product
+		var product *models.Product
 		products.Find(item.ProductID).With("StockEntries").First(&product)
 
 		left := item.Qty
@@ -48,14 +48,14 @@ func ReduceProductStock(sale interface{}) {
 				entry.Qty -= uint(left)
 				db.Update(&entry)
 			} else {
-				db.Delete(&products.StockEntry{}, entry.ID)
+				db.Delete(&models.StockEntry{}, entry.ID)
 			}
 			left -= qty
 		}
 	}
 }
 
-func Create(customer *customers.Customer, items []*Item) (*Sale, error) {
+func Create(customer *models.Customer, items []*Item) (*Sale, error) {
 	if customer == nil {
 		return nil, ErrCustomerMissing
 	}

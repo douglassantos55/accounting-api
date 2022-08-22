@@ -5,6 +5,7 @@ import (
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 	"example.com/accounting/products"
 	"example.com/accounting/purchases"
 )
@@ -15,18 +16,18 @@ func TestPurchases(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&accounts.Account{})
-	db.Migrate(&accounts.Entry{})
-	db.Migrate(&accounts.Transaction{})
-	db.Migrate(&products.Product{})
-	db.Migrate(&products.Purchase{})
+	db.Migrate(&models.Account{})
+	db.Migrate(&models.Entry{})
+	db.Migrate(&models.Transaction{})
+	db.Migrate(&models.Product{})
+	db.Migrate(&models.Purchase{})
 
-	cash, _ := accounts.Create("Cash & Equivalents", accounts.Asset, nil)
-	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
-	receivable, _ := accounts.Create("Receivables", accounts.Asset, nil)
-	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
+	cash, _ := accounts.Create("Cash & Equivalents", models.Asset, nil)
+	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
+	receivable, _ := accounts.Create("Receivables", models.Asset, nil)
+	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
 
-	products.Create(&products.Product{
+	products.Create(&models.Product{
 		Name:                "Prod 1",
 		Price:               100,
 		Purchasable:         true,
@@ -55,7 +56,7 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create stock entry", func(t *testing.T) {
-		products.Create(&products.Product{
+		products.Create(&models.Product{
 			Name:               "Prod 2",
 			Price:              16,
 			InventoryAccountID: inventory.ID,
@@ -65,7 +66,7 @@ func TestPurchases(t *testing.T) {
 		purchases.Create(2, 4, 163.22, cash.ID)
 		purchases.Create(2, 10, 157.11, cash.ID)
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(2).With("StockEntries").First(&product); err != nil {
 			t.Error(err)
 		}
@@ -81,7 +82,7 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*products.Purchase
+		var items []*models.Purchase
 		if err := result.Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -97,7 +98,7 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*products.Purchase
+		var items []*models.Purchase
 		if err := result.With("Product").Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -115,7 +116,7 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var purchase *products.Purchase
+		var purchase *models.Purchase
 		if err := result.First(&purchase); err != nil {
 			t.Error(err)
 		}
@@ -136,7 +137,7 @@ func TestPurchases(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		var items []*products.Purchase
+		var items []*models.Purchase
 		if err := result.Where("Qty > ?", 5).Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -152,8 +153,8 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var purchase *products.Purchase
-		if err := result.First(&purchase); err != nil {
+		var purchase *models.Purchase
+		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
 			t.Error(err)
 		}
 
@@ -196,8 +197,8 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var purchase *products.Purchase
-		if err := result.First(&purchase); err != nil {
+		var purchase *models.Purchase
+		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
 			t.Error(err)
 		}
 
@@ -209,35 +210,44 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Updates stock entry", func(t *testing.T) {
+		payment, _ := accounts.Create("Cash", models.Asset, nil)
+
 		result, err := purchases.Find(4)
 		if err != nil {
 			t.Error(err)
 		}
 
-		var purchase *products.Purchase
-		if err := result.First(&purchase); err != nil {
+		var purchase *models.Purchase
+		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
 			t.Error(err)
 		}
 
 		purchase.Qty = 8
+		purchase.Price = 100
 		purchase.ProductID = 2
+		purchase.PaymentAccountID = &payment.ID
 
 		if err := purchases.Update(purchase); err != nil {
 			t.Error(err)
 		}
 
-		var prod *products.Product
+		var prod *models.Product
 		products.Find(2).With("StockEntries").First(&prod)
 
 		if prod.Inventory() != 16 {
 			t.Errorf("Expected stock %v , got %v", 16, prod.Inventory())
 		}
 
-		var prod1 *products.Product
+		var prod1 *models.Product
 		products.Find(1).With("StockEntries").First(&prod1)
 
 		if prod1.Inventory() != 5 {
 			t.Errorf("Expected stock %v , got %v", 5, prod1.Inventory())
+		}
+
+		accounts.Find(payment.ID).With("Transactions").First(&payment)
+		if payment.Balance() != -800 {
+			t.Errorf("Expected balance %v, got %v", -800, payment.Balance())
 		}
 	})
 
@@ -251,12 +261,12 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var purchase *products.Purchase
+		var purchase *models.Purchase
 		if err := result.First(&purchase); err == nil {
 			t.Error("Should have deleted purchase")
 		}
 
-		var prod *products.Product
+		var prod *models.Product
 		products.Find(2).With("StockEntries").First(&prod)
 
 		if prod.Inventory() != 8 {
@@ -265,14 +275,14 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Increase inventory account, reduce payment account", func(t *testing.T) {
-		account, err := accounts.Create("Inv", accounts.Asset, nil)
-		payment, err := accounts.Create("Cash", accounts.Asset, nil)
+		account, err := accounts.Create("Inv", models.Asset, nil)
+		payment, err := accounts.Create("Cash", models.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
 		}
 
-		products.Create(&products.Product{
+		products.Create(&models.Product{
 			Name:               "Mice",
 			Price:              33.5,
 			InventoryAccountID: account.ID,
@@ -282,7 +292,7 @@ func TestPurchases(t *testing.T) {
 			t.Error(err)
 		}
 
-		var inventory *accounts.Account
+		var inventory *models.Account
 		if err := accounts.Find(account.ID).With("Transactions").First(&inventory); err != nil {
 			t.Error(err)
 		}

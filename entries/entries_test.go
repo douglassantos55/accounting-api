@@ -7,6 +7,7 @@ import (
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
 	"example.com/accounting/entries"
+	"example.com/accounting/models"
 )
 
 func TestEntries(t *testing.T) {
@@ -15,17 +16,17 @@ func TestEntries(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&accounts.Entry{})
-	db.Migrate(&accounts.Account{})
-	db.Migrate(&accounts.Transaction{})
+	db.Migrate(&models.Entry{})
+	db.Migrate(&models.Account{})
+	db.Migrate(&models.Transaction{})
 
-	accounts.Create("Revenue", accounts.Revenue, nil)
-	accounts.Create("Cash", accounts.Asset, nil)
+	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
+	cash, _ := accounts.Create("Cash", models.Asset, nil)
 
 	t.Run("Create", func(t *testing.T) {
-		entry, err := entries.Create("Description", []*accounts.Transaction{
-			{AccountID: 1, Value: 1000},
-			{AccountID: 2, Value: 1000},
+		entry, err := entries.Create("Description", []*models.Transaction{
+			{Account: revenue, Value: 1000},
+			{Account: cash, Value: 1000},
 		})
 
 		if err != nil {
@@ -48,9 +49,9 @@ func TestEntries(t *testing.T) {
 	})
 
 	t.Run("Unbalanced", func(t *testing.T) {
-		entry, err := entries.Create("Description", []*accounts.Transaction{
-			{AccountID: 1, Value: 1001},
-			{AccountID: 2, Value: 1000},
+		entry, err := entries.Create("Description", []*models.Transaction{
+			{Account: revenue, Value: 1001},
+			{Account: cash, Value: 1000},
 		})
 
 		if !errors.Is(err, entries.ErrEntryNotBalanced) {
@@ -63,9 +64,9 @@ func TestEntries(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		entries.Create("Entry 2", []*accounts.Transaction{
-			{AccountID: 1, Value: 333},
-			{AccountID: 2, Value: 333},
+		entries.Create("Entry 2", []*models.Transaction{
+			{Account: revenue, Value: 333},
+			{Account: cash, Value: 333},
 		})
 
 		result, err := entries.List()
@@ -73,7 +74,7 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*accounts.Entry
+		var items []*models.Entry
 		if err := result.Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -89,7 +90,7 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var entry *accounts.Entry
+		var entry *models.Entry
 		if err := result.With("Transactions").First(&entry); err != nil {
 			t.Error(err)
 		}
@@ -119,7 +120,7 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*accounts.Entry
+		var items []*models.Entry
 		result = result.WhereHas("transactions", "entries.id = transactions.entry_id AND transactions.account_id = ?", 5)
 		if err := result.Get(&items); err != nil {
 			t.Error(err)
@@ -136,7 +137,7 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var items []*accounts.Entry
+		var items []*models.Entry
 		result = result.WhereHas("transactions", "entries.id = transactions.entry_id AND transactions.account_id = ?", 2)
 		if err := result.Get(&items); err != nil {
 			t.Error(err)
@@ -153,7 +154,7 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var entry *accounts.Entry
+		var entry *models.Entry
 		if err := result.With("Transactions").First(&entry); err != nil {
 			t.Error(err)
 		}
@@ -170,7 +171,7 @@ func TestEntries(t *testing.T) {
 
 		result, _ = entries.Find(2)
 
-		var updated *accounts.Entry
+		var updated *models.Entry
 		result.With("Transactions").First(&updated)
 
 		if updated.Description != "Updated entry" {
@@ -197,14 +198,14 @@ func TestEntries(t *testing.T) {
 			t.Error(err)
 		}
 
-		var entry *accounts.Entry
+		var entry *models.Entry
 		if err := result.First(&entry); err == nil {
 			t.Error("Should not find deleted entry")
 		}
 
 		// check if transactions are deleted
-		var transactions []*accounts.Transaction
-		if err := db.Find(&accounts.Transaction{}).Get(&transactions); err != nil {
+		var transactions []*models.Transaction
+		if err := db.Find(&models.Transaction{}).Get(&transactions); err != nil {
 			t.Error(err)
 		}
 

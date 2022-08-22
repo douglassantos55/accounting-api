@@ -1,23 +1,16 @@
 package vendors
 
 import (
-	"example.com/accounting/customers"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
-type Vendor struct {
-	database.Model
-	Name    string
-	Cnpj    string
-	Address *customers.Address `gorm:"embedded"`
-}
-
-func Create(name, cnpj string, address *customers.Address) (*Vendor, error) {
+func Create(name, cnpj string, address *models.Address) (*models.Vendor, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
-	vendor := &Vendor{
+	vendor := &models.Vendor{
 		Name:    name,
 		Cnpj:    cnpj,
 		Address: address,
@@ -35,7 +28,7 @@ func List() database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Vendor{})
+	return db.Find(&models.Vendor{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -43,10 +36,10 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Vendor{}).Where("ID", id)
+	return db.Find(&models.Vendor{}).Where("ID", id)
 }
 
-func Update(vendor *Vendor) error {
+func Update(vendor *models.Vendor) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
@@ -59,5 +52,5 @@ func Delete(id uint) error {
 	if err != nil {
 		return err
 	}
-	return db.Delete(&Vendor{}, id)
+	return db.Delete(&models.Vendor{}, id)
 }

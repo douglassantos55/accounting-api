@@ -5,6 +5,7 @@ import (
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 	"example.com/accounting/services"
 )
 
@@ -14,10 +15,10 @@ func TestServices(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&services.Service{})
-	db.Migrate(&accounts.Account{})
+	db.Migrate(&models.Service{})
+	db.Migrate(&models.Account{})
 
-	accounts.Create("Revenue", accounts.Revenue, nil)
+	accounts.Create("Revenue", models.Revenue, nil)
 
 	t.Run("Create", func(t *testing.T) {
 		service, err := services.Create("Service 1", 1)
@@ -45,7 +46,7 @@ func TestServices(t *testing.T) {
 		services.Create("Service 2", 1)
 		services.Create("Service 3", 1)
 
-		var items []*services.Service
+		var items []*models.Service
 		if err := services.List().Get(&items); err != nil {
 			t.Error(err)
 		}
@@ -56,7 +57,7 @@ func TestServices(t *testing.T) {
 	})
 
 	t.Run("Get by ID", func(t *testing.T) {
-		var service *services.Service
+		var service *models.Service
 		if err := services.Find(3).First(&service); err != nil {
 			t.Error(err)
 		}
@@ -67,7 +68,7 @@ func TestServices(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		var service *services.Service
+		var service *models.Service
 		if err := services.Find(3).First(&service); err != nil {
 			t.Error(err)
 		}
@@ -90,7 +91,7 @@ func TestServices(t *testing.T) {
 	})
 
 	t.Run("Update without account", func(t *testing.T) {
-		var service *services.Service
+		var service *models.Service
 		if err := services.Find(3).First(&service); err != nil {
 			t.Error(err)
 		}
@@ -112,7 +113,7 @@ func TestServices(t *testing.T) {
 			t.Error(err)
 		}
 
-		var service *services.Service
+		var service *models.Service
 		if err := services.Find(3).First(&service); err == nil {
 			t.Error("Should have deleted service")
 		}

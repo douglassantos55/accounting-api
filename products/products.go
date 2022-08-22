@@ -3,9 +3,8 @@ package products
 import (
 	"errors"
 
-	"example.com/accounting/accounts"
 	"example.com/accounting/database"
-	"example.com/accounting/vendors"
+	"example.com/accounting/models"
 )
 
 var (
@@ -14,51 +13,7 @@ var (
 	ErrInventoryAccountMissing  = errors.New("Inventory account is required")
 )
 
-type Purchase struct {
-	database.Model
-	Qty              uint
-	Price            float64
-	PaymentAccountID *uint
-	PaymentAccount   *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
-	ProductID        uint
-	Product          *Product `gorm:"constraint:OnDelete:CASCADE;"`
-	StockEntryID     *uint
-	StockEntry       *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
-}
-
-type StockEntry struct {
-	database.Model
-	Qty       uint
-	Price     float64
-	ProductID uint
-	Product   *Product
-}
-
-type Product struct {
-	database.Model
-	Name                string
-	Price               float64
-	Purchasable         bool
-	RevenueAccountID    *uint
-	RevenueAccount      *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
-	ReceivableAccountID *uint
-	ReceivableAccount   *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
-	InventoryAccountID  uint
-	InventoryAccount    *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
-	VendorID            *uint
-	Vendor              *vendors.Vendor `gorm:"constraint:OnDelete:SET NULL;"`
-	StockEntries        []*StockEntry   `gorm:"constraint:OnDelete:CASCADE;"`
-}
-
-func (p Product) Inventory() uint {
-	var inventory uint = 0
-	for _, entry := range p.StockEntries {
-		inventory += entry.Qty
-	}
-	return inventory
-}
-
-func Create(product *Product) error {
+func Create(product *models.Product) error {
 	db, err := database.GetConnection()
 
 	if err != nil {
@@ -81,7 +36,7 @@ func List() database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Product{})
+	return db.Find(&models.Product{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -89,10 +44,10 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Product{}).Where("ID", id)
+	return db.Find(&models.Product{}).Where("ID", id)
 }
 
-func Update(product *Product) error {
+func Update(product *models.Product) error {
 	db, err := database.GetConnection()
 
 	if err != nil {
@@ -113,14 +68,14 @@ func Delete(id uint) error {
 		return err
 	}
 
-	if err := Find(id).First(&Product{}); err != nil {
+	if err := Find(id).First(&models.Product{}); err != nil {
 		return err
 	}
 
-	return db.Delete(&Product{}, id)
+	return db.Delete(&models.Product{}, id)
 }
 
-func validateAccounts(product *Product) error {
+func validateAccounts(product *models.Product) error {
 	if product.Purchasable {
 		if product.RevenueAccountID == nil {
 			return ErrRevenueAccountMissing

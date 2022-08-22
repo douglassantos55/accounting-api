@@ -2,32 +2,15 @@ package customers
 
 import (
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 )
 
-type Customer struct {
-	database.Model
-	Name    string
-	Email   string
-	Cpf     string
-	Phone   string
-	Address *Address `gorm:"embedded"`
-}
-
-type Address struct {
-	Street       string
-	Number       string
-	Neighborhood string
-	City         string
-	State        string
-	Postcode     string
-}
-
-func Create(name string, email string, cpf string, phone string, address *Address) (*Customer, error) {
+func Create(name string, email string, cpf string, phone string, address *models.Address) (*models.Customer, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
-	customer := &Customer{
+	customer := &models.Customer{
 		Name:    name,
 		Email:   email,
 		Phone:   phone,
@@ -45,7 +28,7 @@ func List() database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Customer{})
+	return db.Find(&models.Customer{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -53,10 +36,10 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Customer{}).Where("ID", id)
+	return db.Find(&models.Customer{}).Where("ID", id)
 }
 
-func Update(customer *Customer) error {
+func Update(customer *models.Customer) error {
 	db, err := database.GetConnection()
 	if err != nil {
 		return err
@@ -69,5 +52,5 @@ func Delete(id uint) error {
 	if err != nil {
 		return err
 	}
-	return db.Delete(&Customer{}, id)
+	return db.Delete(&models.Customer{}, id)
 }

@@ -8,6 +8,7 @@ import (
 	"example.com/accounting/customers"
 	"example.com/accounting/database"
 	"example.com/accounting/events"
+	"example.com/accounting/models"
 	"example.com/accounting/products"
 	"example.com/accounting/purchases"
 	"example.com/accounting/sales"
@@ -21,40 +22,40 @@ func TestSales(t *testing.T) {
 
 	db.Migrate(&sales.Item{})
 	db.Migrate(&sales.Sale{})
-	db.Migrate(&accounts.Account{})
-	db.Migrate(&accounts.Entry{})
-	db.Migrate(&accounts.Transaction{})
-	db.Migrate(&products.Purchase{})
-	db.Migrate(&products.Product{})
-	db.Migrate(&products.StockEntry{})
+	db.Migrate(&models.Account{})
+	db.Migrate(&models.Entry{})
+	db.Migrate(&models.Transaction{})
+	db.Migrate(&models.Purchase{})
+	db.Migrate(&models.Product{})
+	db.Migrate(&models.StockEntry{})
 
-	accounts.Create("Revenue", accounts.Revenue, nil)
-	cash, _ := accounts.Create("Cash", accounts.Asset, nil)
-	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
+	accounts.Create("Revenue", models.Revenue, nil)
+	cash, _ := accounts.Create("Cash", models.Asset, nil)
+	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
 
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
 	t.Run("Create", func(t *testing.T) {
-		customer := &customers.Customer{Name: "John Doe"}
+		customer := &models.Customer{Name: "John Doe"}
 
 		items := []*sales.Item{
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mouse",
 					InventoryAccountID: inventory.ID,
-					StockEntries: []*products.StockEntry{
+					StockEntries: []*models.StockEntry{
 						{Qty: 100, Price: 99.3},
 					}},
 			},
 			{
 				Qty:   2,
 				Price: 30,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mousepad",
 					InventoryAccountID: inventory.ID,
-					StockEntries: []*products.StockEntry{
+					StockEntries: []*models.StockEntry{
 						{Qty: 100, Price: 29.5},
 					}},
 			},
@@ -79,7 +80,7 @@ func TestSales(t *testing.T) {
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mouse",
 					InventoryAccountID: inventory.ID,
 				},
@@ -87,7 +88,7 @@ func TestSales(t *testing.T) {
 			{
 				Qty:   2,
 				Price: 30,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mousepad",
 					InventoryAccountID: inventory.ID,
 				},
@@ -104,7 +105,7 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("Create without items", func(t *testing.T) {
-		_, err := sales.Create(&customers.Customer{}, nil)
+		_, err := sales.Create(&models.Customer{}, nil)
 		if err == nil {
 			t.Error("Should not create without items")
 		}
@@ -114,11 +115,11 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("Create without stock", func(t *testing.T) {
-		_, err := sales.Create(&customers.Customer{}, []*sales.Item{
+		_, err := sales.Create(&models.Customer{}, []*sales.Item{
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mouse",
 					InventoryAccountID: inventory.ID,
 				},
@@ -135,14 +136,14 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		sales.Create(&customers.Customer{Name: "Jane Doe"}, []*sales.Item{
+		sales.Create(&models.Customer{Name: "Jane Doe"}, []*sales.Item{
 			{
 				Qty:   1,
 				Price: 100,
-				Product: &products.Product{
+				Product: &models.Product{
 					Name:               "Mouse",
 					InventoryAccountID: inventory.ID,
-					StockEntries: []*products.StockEntry{
+					StockEntries: []*models.StockEntry{
 						{Qty: 11, Price: 101.37},
 					}},
 			},
@@ -241,7 +242,7 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("Reduces product stock", func(t *testing.T) {
-		prod := &products.Product{
+		prod := &models.Product{
 			Name:               "Prod",
 			Price:              15,
 			InventoryAccountID: inventory.ID,

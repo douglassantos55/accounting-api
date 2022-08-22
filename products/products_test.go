@@ -6,6 +6,7 @@ import (
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/models"
 	"example.com/accounting/products"
 	"example.com/accounting/vendors"
 )
@@ -16,16 +17,16 @@ func TestProducts(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&products.Product{})
-	db.Migrate(&products.StockEntry{})
-	db.Migrate(&accounts.Account{})
+	db.Migrate(&models.Product{})
+	db.Migrate(&models.StockEntry{})
+	db.Migrate(&models.Account{})
 
-	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
-	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
-	receivables, _ := accounts.Create("Receivables", accounts.Asset, nil)
+	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
+	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
+	receivables, _ := accounts.Create("Receivables", models.Asset, nil)
 
 	t.Run("Create", func(t *testing.T) {
-		prod := &products.Product{
+		prod := &models.Product{
 			Name:                "Keyboard",
 			Price:               350.5,
 			Purchasable:         true,
@@ -60,7 +61,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create Without Revenue Account", func(t *testing.T) {
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:                "Coffe Powder",
 			Price:               33.6,
 			Purchasable:         true,
@@ -74,7 +75,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create Without Receivable Account", func(t *testing.T) {
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:               "Iron plate",
 			Price:              330.6,
 			Purchasable:        true,
@@ -88,7 +89,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create Without Inventory Account", func(t *testing.T) {
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:                "Concrete",
 			Price:               50.5,
 			Purchasable:         true,
@@ -104,7 +105,7 @@ func TestProducts(t *testing.T) {
 	t.Run("Create With Non Existing Revenue Account", func(t *testing.T) {
 		fakeId := uint(15115)
 
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:                "Door",
 			Price:               70.5,
 			Purchasable:         true,
@@ -121,7 +122,7 @@ func TestProducts(t *testing.T) {
 	t.Run("Create With Non Existing Receivable Account", func(t *testing.T) {
 		fakeId := uint(15115)
 
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:                "Door knob",
 			Price:               20.5,
 			Purchasable:         true,
@@ -138,7 +139,7 @@ func TestProducts(t *testing.T) {
 	t.Run("Create With Non Existing Inventory Account", func(t *testing.T) {
 		fakeId := uint(15115)
 
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:                "Guitar",
 			Price:               720.5,
 			Purchasable:         true,
@@ -153,7 +154,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		products.Create(&products.Product{
+		products.Create(&models.Product{
 			Name:                "Monitor",
 			Price:               1350.5,
 			Purchasable:         true,
@@ -162,7 +163,7 @@ func TestProducts(t *testing.T) {
 			InventoryAccountID:  inventory.ID,
 		})
 
-		products.Create(&products.Product{
+		products.Create(&models.Product{
 			Name:                "Mouse",
 			Price:               150.5,
 			Purchasable:         true,
@@ -171,7 +172,7 @@ func TestProducts(t *testing.T) {
 			InventoryAccountID:  inventory.ID,
 		})
 
-		var items []*products.Product
+		var items []*models.Product
 		err := products.List().Get(&items)
 
 		if err != nil {
@@ -184,7 +185,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("List With Accounts", func(t *testing.T) {
-		var items []*products.Product
+		var items []*models.Product
 		err := products.List().With("*").Get(&items)
 
 		if err != nil {
@@ -207,7 +208,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Get By ID", func(t *testing.T) {
-		var product *products.Product
+		var product *models.Product
 
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
@@ -223,7 +224,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Get With Accounts", func(t *testing.T) {
-		var product *products.Product
+		var product *models.Product
 
 		if err := products.Find(3).With("RevenueAccount", "InventoryAccount", "ReceivableAccount").First(&product); err != nil {
 			t.Error(err)
@@ -243,7 +244,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Update", func(t *testing.T) {
-		var item *products.Product
+		var item *models.Product
 		products.Find(3).First(&item)
 
 		item.Name = "Mousepad"
@@ -253,7 +254,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		var product *products.Product
+		var product *models.Product
 		products.Find(3).First(&product)
 
 		if product.Name != "Mousepad" {
@@ -266,7 +267,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Update Without Revenue Account", func(t *testing.T) {
-		var item *products.Product
+		var item *models.Product
 		if err := products.Find(3).First(&item); err != nil {
 			t.Error(err)
 		}
@@ -276,7 +277,7 @@ func TestProducts(t *testing.T) {
 			t.Error("Should not be able to update product without revenue account")
 		}
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
 		}
@@ -287,7 +288,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Update Without Receivable Account", func(t *testing.T) {
-		var item *products.Product
+		var item *models.Product
 		if err := products.Find(3).First(&item); err != nil {
 			t.Error(err)
 		}
@@ -297,7 +298,7 @@ func TestProducts(t *testing.T) {
 			t.Error("Should not be able to update product without receivable account")
 		}
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
 		}
@@ -308,7 +309,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Update Without Inventory Account", func(t *testing.T) {
-		var item *products.Product
+		var item *models.Product
 		if err := products.Find(3).First(&item); err != nil {
 			t.Error(err)
 		}
@@ -318,7 +319,7 @@ func TestProducts(t *testing.T) {
 			t.Error("Should not be able to update product without inventory account")
 		}
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
 		}
@@ -333,7 +334,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(3).First(&product); err == nil {
 			t.Error("Product should be deleted")
 		}
@@ -351,7 +352,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		if err := products.Create(&products.Product{
+		if err := products.Create(&models.Product{
 			Name:               "Prod",
 			Price:              100,
 			VendorID:           &vendor.ID,
@@ -360,7 +361,7 @@ func TestProducts(t *testing.T) {
 			t.Error(err)
 		}
 
-		var product *products.Product
+		var product *models.Product
 		if err := products.Find(3).First(&product); err != nil {
 			t.Error(err)
 		}
@@ -375,7 +376,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Update without vendor", func(t *testing.T) {
-		var item *products.Product
+		var item *models.Product
 		if err := products.Find(3).First(&item); err != nil {
 			t.Error(err)
 		}
@@ -389,7 +390,7 @@ func TestProducts(t *testing.T) {
 			t.Error("Should be able to update product without vendor")
 		}
 
-		var product *products.Product
+		var product *models.Product
 		products.Find(3).First(&product)
 
 		if product.VendorID != nil {
@@ -398,7 +399,7 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create without purchasable", func(t *testing.T) {
-		err := products.Create(&products.Product{
+		err := products.Create(&models.Product{
 			Name:               "Production Supply",
 			Price:              7000,
 			Purchasable:        false,
