@@ -11,7 +11,7 @@ import (
 
 func TestEntries(t *testing.T) {
 	t.Setenv("DB_DRIVER", "sqlite")
-	t.Setenv("DB_CONNECTION", "../test.sqlite")
+	t.Setenv("DB_CONNECTION", "file::memory:?cache=shared")
 
 	db, _ := database.GetConnection()
 

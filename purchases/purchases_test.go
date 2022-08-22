@@ -11,7 +11,7 @@ import (
 
 func TestPurchases(t *testing.T) {
 	t.Setenv("DB_DRIVER", "sqlite")
-	t.Setenv("DB_CONNECTION", "../test.sqlite")
+	t.Setenv("DB_CONNECTION", "file::memory:?cache=shared")
 
 	db, _ := database.GetConnection()
 
@@ -266,8 +266,9 @@ func TestPurchases(t *testing.T) {
 		}
 	})
 
-	t.Run("Increase inventory account", func(t *testing.T) {
+	t.Run("Increase inventory account, reduce payment account", func(t *testing.T) {
 		account, err := accounts.Create("Inv", accounts.Asset, nil)
+		payment, err := accounts.Create("Cash", accounts.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -279,7 +280,7 @@ func TestPurchases(t *testing.T) {
 			InventoryAccountID: account.ID,
 		})
 
-		if _, err := purchases.Create(3, 100, 26.5, cash.ID); err != nil {
+		if _, err := purchases.Create(3, 100, 26.5, payment.ID); err != nil {
 			t.Error(err)
 		}
 
@@ -292,13 +293,12 @@ func TestPurchases(t *testing.T) {
 			t.Errorf("Expected balance %v, got %v", 2650.0, inventory.Balance())
 		}
 
-		var payment *accounts.Account
-		if err := accounts.Find(cash.ID).With("Transactions").First(&payment); err != nil {
+		if err := accounts.Find(payment.ID).With("Transactions").First(&payment); err != nil {
 			t.Error(err)
 		}
 
-		if payment.Balance() != -6265.610000000001 {
-			t.Errorf("Expected balance %v, got %v", -6265.610000000001, payment.Balance())
+		if payment.Balance() != -2650.0 {
+			t.Errorf("Expected balance %v, got %v", -2650.0, payment.Balance())
 		}
 	})
 }

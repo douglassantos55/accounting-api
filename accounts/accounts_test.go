@@ -11,7 +11,7 @@ import (
 
 func TestAccount(t *testing.T) {
 	t.Setenv("DB_DRIVER", "sqlite")
-	t.Setenv("DB_CONNECTION", "../test.sqlite")
+	t.Setenv("DB_CONNECTION", "file::memory:?cache=shared")
 
 	db, _ := database.GetConnection()
 	db.Migrate(&accounts.Account{})
@@ -19,7 +19,7 @@ func TestAccount(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Raw SQL", func(t *testing.T) {
-		db, err := sql.Open("sqlite3", "../test.sqlite")
+		db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
 		if err != nil {
 			t.Error(err)
 		}
