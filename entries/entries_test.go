@@ -22,8 +22,6 @@ func TestEntries(t *testing.T) {
 	accounts.Create("Revenue", accounts.Revenue, nil)
 	accounts.Create("Cash", accounts.Asset, nil)
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		entry, err := entries.Create("Description", []*accounts.Transaction{
 			{AccountID: 1, Value: 1000},

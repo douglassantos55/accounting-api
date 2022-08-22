@@ -28,8 +28,6 @@ func TestSales(t *testing.T) {
 	db.Migrate(&products.Product{})
 	db.Migrate(&products.StockEntry{})
 
-	t.Cleanup(db.CleanUp)
-
 	accounts.Create("Revenue", accounts.Revenue, nil)
 	cash, _ := accounts.Create("Cash", accounts.Asset, nil)
 	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)

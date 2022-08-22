@@ -19,8 +19,6 @@ func TestServices(t *testing.T) {
 
 	accounts.Create("Revenue", accounts.Revenue, nil)
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		service, err := services.Create("Service 1", 1)
 		if err != nil {

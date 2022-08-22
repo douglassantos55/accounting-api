@@ -16,8 +16,6 @@ func TestVendors(t *testing.T) {
 
 	db.Migrate(&vendors.Vendor{})
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		address := &customers.Address{}
 		vendor, err := vendors.Create("Vendor 1", "15.152.412/4441-12", address)

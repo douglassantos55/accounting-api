@@ -14,8 +14,6 @@ func TestCustomers(t *testing.T) {
 	db, _ := database.GetConnection()
 	db.Migrate(&customers.Customer{})
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		address := &customers.Address{
 			"rua abc",

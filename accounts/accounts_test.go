@@ -16,8 +16,6 @@ func TestAccount(t *testing.T) {
 	db, _ := database.GetConnection()
 	db.Migrate(&accounts.Account{})
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Raw SQL", func(t *testing.T) {
 		db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
 		if err != nil {

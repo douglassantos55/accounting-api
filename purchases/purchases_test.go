@@ -35,8 +35,6 @@ func TestPurchases(t *testing.T) {
 		InventoryAccountID:  inventory.ID,
 	})
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		purchase, err := purchases.Create(1, 5, 155.75, cash.ID)
 		if err != nil {

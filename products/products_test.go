@@ -24,8 +24,6 @@ func TestProducts(t *testing.T) {
 	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
 	receivables, _ := accounts.Create("Receivables", accounts.Asset, nil)
 
-	t.Cleanup(db.CleanUp)
-
 	t.Run("Create", func(t *testing.T) {
 		prod := &products.Product{
 			Name:                "Keyboard",
