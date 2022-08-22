@@ -31,6 +31,7 @@ func TestSales(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	accounts.Create("Revenue", accounts.Revenue, nil)
+	cash, _ := accounts.Create("Cash", accounts.Asset, nil)
 	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
 
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
@@ -252,10 +253,10 @@ func TestSales(t *testing.T) {
 			t.Error(err)
 		}
 
-		if _, err := purchases.Create(prod.ID, 36, 55.3); err != nil {
+		if _, err := purchases.Create(prod.ID, 36, 55.3, cash.ID); err != nil {
 			t.Error(err)
 		}
-		if _, err := purchases.Create(prod.ID, 34, 55.3); err != nil {
+		if _, err := purchases.Create(prod.ID, 34, 55.3, cash.ID); err != nil {
 			t.Error(err)
 		}
 

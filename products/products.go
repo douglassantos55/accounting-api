@@ -16,12 +16,14 @@ var (
 
 type Purchase struct {
 	database.Model
-	Qty          uint
-	Price        float64
-	ProductID    uint
-	Product      *Product `gorm:"constraint:OnDelete:CASCADE;"`
-	StockEntryID *uint
-	StockEntry   *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
+	Qty              uint
+	Price            float64
+	PaymentAccountID *uint
+	PaymentAccount   *accounts.Account `gorm:"constraint:OnDelete:SET NULL;"`
+	ProductID        uint
+	Product          *Product `gorm:"constraint:OnDelete:CASCADE;"`
+	StockEntryID     *uint
+	StockEntry       *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
 }
 
 type StockEntry struct {

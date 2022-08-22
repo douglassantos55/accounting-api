@@ -21,6 +21,7 @@ func TestPurchases(t *testing.T) {
 	db.Migrate(&products.Product{})
 	db.Migrate(&products.Purchase{})
 
+	cash, _ := accounts.Create("Cash & Equivalents", accounts.Asset, nil)
 	revenue, _ := accounts.Create("Revenue", accounts.Revenue, nil)
 	receivable, _ := accounts.Create("Receivables", accounts.Asset, nil)
 	inventory, _ := accounts.Create("Inventory", accounts.Asset, nil)
@@ -37,7 +38,7 @@ func TestPurchases(t *testing.T) {
 	t.Cleanup(db.CleanUp)
 
 	t.Run("Create", func(t *testing.T) {
-		purchase, err := purchases.Create(1, 5, 155.75)
+		purchase, err := purchases.Create(1, 5, 155.75, cash.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -50,7 +51,7 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create without product", func(t *testing.T) {
-		if _, err := purchases.Create(0, 5, 15.33); err == nil {
+		if _, err := purchases.Create(0, 5, 15.33, cash.ID); err == nil {
 			t.Error("Should not save without product")
 		}
 	})
@@ -62,9 +63,9 @@ func TestPurchases(t *testing.T) {
 			InventoryAccountID: inventory.ID,
 		})
 
-		purchases.Create(2, 4, 153.22)
-		purchases.Create(2, 4, 163.22)
-		purchases.Create(2, 10, 157.11)
+		purchases.Create(2, 4, 153.22, cash.ID)
+		purchases.Create(2, 4, 163.22, cash.ID)
+		purchases.Create(2, 10, 157.11, cash.ID)
 
 		var product *products.Product
 		if err := products.Find(2).With("StockEntries").First(&product); err != nil {
@@ -278,7 +279,7 @@ func TestPurchases(t *testing.T) {
 			InventoryAccountID: account.ID,
 		})
 
-		if _, err := purchases.Create(3, 100, 26.5); err != nil {
+		if _, err := purchases.Create(3, 100, 26.5, cash.ID); err != nil {
 			t.Error(err)
 		}
 
@@ -289,6 +290,15 @@ func TestPurchases(t *testing.T) {
 
 		if inventory.Balance() != 2650.0 {
 			t.Errorf("Expected balance %v, got %v", 2650.0, inventory.Balance())
+		}
+
+		var payment *accounts.Account
+		if err := accounts.Find(cash.ID).With("Transactions").First(&payment); err != nil {
+			t.Error(err)
+		}
+
+		if payment.Balance() != -6265.610000000001 {
+			t.Errorf("Expected balance %v, got %v", -6265.610000000001, payment.Balance())
 		}
 	})
 }

@@ -7,16 +7,17 @@ import (
 	"example.com/accounting/products"
 )
 
-func Create(productId, qty uint, price float64) (*products.Purchase, error) {
+func Create(productId, qty uint, price float64, paymentAccountID uint) (*products.Purchase, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
 	purchase := &products.Purchase{
-		Qty:       qty,
-		Price:     price,
-		ProductID: productId,
+		Qty:              qty,
+		Price:            price,
+		ProductID:        productId,
+		PaymentAccountID: &paymentAccountID,
 		StockEntry: &products.StockEntry{
 			Price:     price,
 			Qty:       qty,
@@ -36,7 +37,7 @@ func Create(productId, qty uint, price float64) (*products.Purchase, error) {
 
 		if _, err := entries.Create("Purchase of product", []*accounts.Transaction{
 			{Value: price * float64(qty), AccountID: product.InventoryAccountID},
-			{Value: price * float64(qty), AccountID: 1},
+			{Value: -price * float64(qty), AccountID: paymentAccountID},
 		}); err != nil {
 			return err
 		}
