@@ -252,10 +252,22 @@ func TestSales(t *testing.T) {
 			t.Error(err)
 		}
 
-		if _, err := purchases.Create(prod.ID, 36, 55.3, cash.ID); err != nil {
+		if _, err := purchases.Create(&models.Purchase{
+			ProductID:        prod.ID,
+			Qty:              36,
+			Paid:             true,
+			Price:            55.3,
+			PaymentAccountID: &cash.ID,
+		}); err != nil {
 			t.Error(err)
 		}
-		if _, err := purchases.Create(prod.ID, 34, 55.3, cash.ID); err != nil {
+		if _, err := purchases.Create(&models.Purchase{
+			ProductID:        prod.ID,
+			Qty:              34,
+			Paid:             true,
+			Price:            55.3,
+			PaymentAccountID: &cash.ID,
+		}); err != nil {
 			t.Error(err)
 		}
 

@@ -1,49 +1,63 @@
 package purchases
 
 import (
+	"errors"
+
 	"example.com/accounting/database"
 	"example.com/accounting/models"
 	"example.com/accounting/products"
 )
 
-func Create(productId, qty uint, price float64, paymentAccountID uint) (*models.Purchase, error) {
+var (
+	ErrPaymentAccountMissing = errors.New("Payment account is required")
+	ErrPayableAccountMissing = errors.New("Payable account is required")
+)
+
+func Create(purchase *models.Purchase) (*models.Purchase, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	var purchase *models.Purchase
-
 	if err := db.Transaction(func() error {
 		var product *models.Product
-		if err := products.Find(productId).First(&product); err != nil {
+		if err := products.Find(purchase.ProductID).First(&product); err != nil {
 			return err
 		}
 
-		purchase = &models.Purchase{
-			Qty:              qty,
-			Price:            price,
-			ProductID:        productId,
-			PaymentAccountID: &paymentAccountID,
-			StockEntry: &models.StockEntry{
-				Price:     price,
-				Qty:       qty,
-				ProductID: productId,
-			},
-			Entries: []*models.Entry{{
+		purchase.StockEntry = &models.StockEntry{
+			Price:     purchase.Price,
+			Qty:       purchase.Qty,
+			ProductID: purchase.ProductID,
+		}
+
+		if purchase.Paid {
+			if purchase.PaymentAccountID == nil {
+				return ErrPaymentAccountMissing
+			}
+
+			purchase.PaymentEntry = &models.Entry{
 				Description: "Purchase of product",
 				Transactions: []*models.Transaction{
-					{Value: price * float64(qty), AccountID: product.InventoryAccountID},
-					{Value: -price * float64(qty), AccountID: paymentAccountID},
+					{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
+					{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PaymentAccountID},
 				},
-			}},
+			}
+		} else {
+			if purchase.PayableAccountID == nil {
+				return ErrPayableAccountMissing
+			}
+
+			purchase.PayableEntry = &models.Entry{
+				Description: "Purchase of product",
+				Transactions: []*models.Transaction{
+					{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
+					{Value: purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
+				},
+			}
 		}
 
-		if err := db.Create(purchase); err != nil {
-			return err
-		}
-
-		return nil
+		return db.Create(purchase)
 	}); err != nil {
 		return nil, err
 	}
@@ -84,8 +98,40 @@ func Update(purchase *models.Purchase) error {
 			purchase.StockEntry.ProductID = purchase.ProductID
 		}
 
-		purchase.Entries[0].Transactions[1].AccountID = *purchase.PaymentAccountID
-		purchase.Entries[0].Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+		if purchase.Paid {
+			if purchase.PaymentAccountID == nil {
+				return ErrPaymentAccountMissing
+			}
+
+			if purchase.PaymentEntryID != nil {
+				purchase.PaymentEntry.Transactions[1].AccountID = *purchase.PaymentAccountID
+				purchase.PaymentEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+			} else if purchase.PayableEntryID != nil {
+				if purchase.PayableAccountID == nil {
+					return ErrPayableAccountMissing
+				}
+
+				// create payment entry
+				purchase.PaymentEntry = &models.Entry{
+					Description: "Payment of purchase of product",
+					Transactions: []*models.Transaction{
+						{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
+						{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PaymentAccountID},
+					},
+				}
+			}
+
+			if purchase.PayableEntryID != nil {
+				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
+				purchase.PayableEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+			}
+		} else {
+			if purchase.PayableAccountID == nil {
+				return ErrPayableAccountMissing
+			}
+
+			// do stuff
+		}
 
 		if err := db.Update(purchase); err != nil {
 			return err

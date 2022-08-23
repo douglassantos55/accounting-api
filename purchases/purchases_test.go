@@ -37,7 +37,14 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create", func(t *testing.T) {
-		purchase, err := purchases.Create(1, 5, 155.75, cash.ID)
+		purchase, err := purchases.Create(&models.Purchase{
+			ProductID:        1,
+			Qty:              5,
+			Price:            155.75,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
+
 		if err != nil {
 			t.Error(err)
 		}
@@ -50,7 +57,13 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create without product", func(t *testing.T) {
-		if _, err := purchases.Create(0, 5, 15.33, cash.ID); err == nil {
+		if _, err := purchases.Create(&models.Purchase{
+			ProductID:        0,
+			Qty:              5,
+			Price:            15.33,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		}); err == nil {
 			t.Error("Should not save without product")
 		}
 	})
@@ -62,9 +75,29 @@ func TestPurchases(t *testing.T) {
 			InventoryAccountID: inventory.ID,
 		})
 
-		purchases.Create(2, 4, 153.22, cash.ID)
-		purchases.Create(2, 4, 163.22, cash.ID)
-		purchases.Create(2, 10, 157.11, cash.ID)
+		purchases.Create(&models.Purchase{
+			ProductID:        2,
+			Qty:              4,
+			Price:            153.22,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
+
+		purchases.Create(&models.Purchase{
+			ProductID:        2,
+			Qty:              4,
+			Price:            163.22,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
+
+		purchases.Create(&models.Purchase{
+			ProductID:        2,
+			Qty:              10,
+			Price:            157.11,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
 
 		var product *models.Product
 		if err := products.Find(2).With("StockEntries").First(&product); err != nil {
@@ -154,7 +187,7 @@ func TestPurchases(t *testing.T) {
 		}
 
 		var purchase *models.Purchase
-		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
+		if err := result.With("PaymentEntry", "PaymentEntry.Transactions").First(&purchase); err != nil {
 			t.Error(err)
 		}
 
@@ -198,7 +231,7 @@ func TestPurchases(t *testing.T) {
 		}
 
 		var purchase *models.Purchase
-		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
+		if err := result.With("PaymentEntry", "PaymentEntry.Transactions").First(&purchase); err != nil {
 			t.Error(err)
 		}
 
@@ -218,7 +251,13 @@ func TestPurchases(t *testing.T) {
 		}
 
 		var purchase *models.Purchase
-		if err := result.With("Entries", "Entries.Transactions").First(&purchase); err != nil {
+
+		if err := result.With(
+			"PaymentEntry",
+			"PayableEntry",
+			"PaymentEntry.Transactions",
+			"PayableEntry.Transactions",
+		).First(&purchase); err != nil {
 			t.Error(err)
 		}
 
@@ -288,7 +327,13 @@ func TestPurchases(t *testing.T) {
 			InventoryAccountID: account.ID,
 		})
 
-		if _, err := purchases.Create(3, 100, 26.5, payment.ID); err != nil {
+		if _, err := purchases.Create(&models.Purchase{
+			ProductID:        3,
+			Qty:              100,
+			Price:            26.5,
+			Paid:             true,
+			PaymentAccountID: &payment.ID,
+		}); err != nil {
 			t.Error(err)
 		}
 
@@ -307,6 +352,16 @@ func TestPurchases(t *testing.T) {
 
 		if payment.Balance() != -2650.0 {
 			t.Errorf("Expected balance %v, got %v", -2650.0, payment.Balance())
+		}
+	})
+
+	t.Run("Create not paid", func(t *testing.T) {
+		if _, err := purchases.Create(&models.Purchase{
+			ProductID: 1,
+			Qty:       10,
+			Price:     5,
+		}); err == nil {
+			t.Error("Should not create not paid without payable account")
 		}
 	})
 }
