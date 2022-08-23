@@ -88,6 +88,11 @@ func Update(purchase *models.Purchase) error {
 	}
 
 	return db.Transaction(func() error {
+		var product *models.Product
+		if err := products.Find(purchase.ProductID).First(&product); err != nil {
+			return err
+		}
+
 		if purchase.StockEntryID != nil {
 			if purchase.StockEntry == nil {
 				db.Find(&models.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
@@ -104,6 +109,9 @@ func Update(purchase *models.Purchase) error {
 			}
 
 			if purchase.PaymentEntryID != nil {
+				purchase.PaymentEntry.Transactions[0].AccountID = product.InventoryAccountID
+				purchase.PaymentEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
+
 				purchase.PaymentEntry.Transactions[1].AccountID = *purchase.PaymentAccountID
 				purchase.PaymentEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
 			} else if purchase.PayableEntryID != nil {
@@ -122,6 +130,9 @@ func Update(purchase *models.Purchase) error {
 			}
 
 			if purchase.PayableEntryID != nil {
+				purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
+				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
+
 				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
 				purchase.PayableEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
 			}
@@ -130,7 +141,27 @@ func Update(purchase *models.Purchase) error {
 				return ErrPayableAccountMissing
 			}
 
-			// do stuff
+			if purchase.PayableEntryID == nil {
+				purchase.PayableEntry = &models.Entry{
+					Description: "Purchase of product",
+					Transactions: []*models.Transaction{
+						{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
+						{Value: purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
+					},
+				}
+			} else {
+				purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
+				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
+
+				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
+				purchase.PayableEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+			}
+
+			if purchase.PaymentEntryID != nil {
+				db.Delete(&models.Entry{}, *purchase.PaymentEntryID)
+				purchase.PaymentEntryID = nil
+				purchase.PaymentEntry = nil
+			}
 		}
 
 		if err := db.Update(purchase); err != nil {

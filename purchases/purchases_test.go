@@ -2,6 +2,7 @@ package purchases_test
 
 import (
 	"testing"
+	"time"
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
@@ -42,6 +43,7 @@ func TestPurchases(t *testing.T) {
 			Qty:              5,
 			Price:            155.75,
 			Paid:             true,
+			PaymentDate:      time.Now(),
 			PaymentAccountID: &cash.ID,
 		})
 
@@ -62,6 +64,7 @@ func TestPurchases(t *testing.T) {
 			Qty:              5,
 			Price:            15.33,
 			Paid:             true,
+			PaymentDate:      time.Now(),
 			PaymentAccountID: &cash.ID,
 		}); err == nil {
 			t.Error("Should not save without product")
@@ -80,6 +83,7 @@ func TestPurchases(t *testing.T) {
 			Qty:              4,
 			Price:            153.22,
 			Paid:             true,
+			PaymentDate:      time.Now(),
 			PaymentAccountID: &cash.ID,
 		})
 
@@ -88,6 +92,7 @@ func TestPurchases(t *testing.T) {
 			Qty:              4,
 			Price:            163.22,
 			Paid:             true,
+			PaymentDate:      time.Now(),
 			PaymentAccountID: &cash.ID,
 		})
 
@@ -96,6 +101,7 @@ func TestPurchases(t *testing.T) {
 			Qty:              10,
 			Price:            157.11,
 			Paid:             true,
+			PaymentDate:      time.Now(),
 			PaymentAccountID: &cash.ID,
 		})
 
@@ -195,10 +201,12 @@ func TestPurchases(t *testing.T) {
 		prevProduct := purchase.ProductID
 		prevPrice := purchase.Price
 		prevQty := purchase.Qty
+		prevPayDate := purchase.PaymentDate
 
 		purchase.ProductID = 1
 		purchase.Price = 355
 		purchase.Qty = 55
+		purchase.PaymentDate = time.Now()
 
 		if err := purchases.Update(purchase); err != nil {
 			t.Error(err)
@@ -221,6 +229,10 @@ func TestPurchases(t *testing.T) {
 
 		if prevQty == purchase.Qty {
 			t.Error("Should have updated qty")
+		}
+
+		if prevPayDate == purchase.PaymentDate {
+			t.Error("Should have update payment date")
 		}
 	})
 
@@ -253,8 +265,6 @@ func TestPurchases(t *testing.T) {
 		var purchase *models.Purchase
 
 		if err := result.With(
-			"PaymentEntry",
-			"PayableEntry",
 			"PaymentEntry.Transactions",
 			"PayableEntry.Transactions",
 		).First(&purchase); err != nil {
@@ -356,12 +366,106 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create not paid", func(t *testing.T) {
+		payable, _ := accounts.Create("Payables", models.Liability, nil)
+
 		if _, err := purchases.Create(&models.Purchase{
 			ProductID: 1,
 			Qty:       10,
 			Price:     5,
 		}); err == nil {
 			t.Error("Should not create not paid without payable account")
+		}
+
+		purchase, err := purchases.Create(&models.Purchase{
+			ProductID:        1,
+			Qty:              10,
+			Price:            5,
+			PayableAccountID: &payable.ID,
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		if purchase.ID == 0 {
+			t.Error("Should have saved purchase without payment")
+		}
+
+		if purchase.PayableEntry == nil {
+			t.Error("Should have payable entry")
+		}
+	})
+
+	t.Run("Change to not paid", func(t *testing.T) {
+		payable, _ := accounts.Create("Payables", models.Liability, nil)
+
+		result, _ := purchases.Find(4)
+
+		var purchase *models.Purchase
+		result.First(&purchase)
+
+		purchase.Paid = false
+		purchase.PayableAccountID = &payable.ID
+
+		purchases.Update(purchase)
+
+		result, _ = purchases.Find(4)
+		result.With("PaymentEntry", "PayableEntry").First(&purchase)
+
+		if purchase.PaymentEntry != nil {
+			t.Error("Should have deleted payment entry")
+		}
+
+		if purchase.PayableEntry == nil {
+			t.Error("Should have payable entry")
+		}
+	})
+
+	t.Run("Change to paid", func(t *testing.T) {
+		result, _ := purchases.Find(4)
+
+		var purchase *models.Purchase
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
+
+		purchase.Paid = true
+		purchase.PaymentAccountID = &cash.ID
+
+		purchases.Update(purchase)
+
+		result, _ = purchases.Find(4)
+		result.With("PaymentEntry", "PayableEntry").First(&purchase)
+
+		if purchase.PaymentEntry == nil {
+			t.Error("Should have payment entry")
+		}
+
+		if purchase.PayableEntry == nil {
+			t.Error("Should have payable entry")
+		}
+	})
+
+	t.Run("Change to not paid again", func(t *testing.T) {
+		payable, _ := accounts.Create("Payables", models.Liability, nil)
+
+		result, _ := purchases.Find(4)
+
+		var purchase *models.Purchase
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
+
+		purchase.Paid = false
+		purchase.PayableAccountID = &payable.ID
+
+		purchases.Update(purchase)
+
+		result, _ = purchases.Find(4)
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
+
+		if purchase.PaymentEntry != nil {
+			t.Error("Should have deleted payment entry")
+		}
+
+		if purchase.PayableEntry == nil {
+			t.Error("Should have payable entry")
 		}
 	})
 }
