@@ -134,7 +134,7 @@ func Update(purchase *models.Purchase) error {
 				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
 
 				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
-				purchase.PayableEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+				purchase.PayableEntry.Transactions[1].Value = purchase.Price * float64(purchase.Qty)
 			}
 		} else {
 			if purchase.PayableAccountID == nil {
@@ -154,7 +154,7 @@ func Update(purchase *models.Purchase) error {
 				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
 
 				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
-				purchase.PayableEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
+				purchase.PayableEntry.Transactions[1].Value = purchase.Price * float64(purchase.Qty)
 			}
 
 			if purchase.PaymentEntryID != nil {

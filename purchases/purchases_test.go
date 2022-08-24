@@ -394,60 +394,132 @@ func TestPurchases(t *testing.T) {
 		if purchase.PayableEntry == nil {
 			t.Error("Should have payable entry")
 		}
+
+		if purchase.PayableEntry.Transactions[0].AccountID != inventory.ID {
+			t.Errorf("Expected inventory account %v, got %v", inventory.ID, purchase.PayableEntry.Transactions[0].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[0].Value != 50 {
+			t.Errorf("Expected value %v, got %v", 50, purchase.PayableEntry.Transactions[0].Value)
+		}
+
+		if purchase.PayableEntry.Transactions[1].AccountID != payable.ID {
+			t.Errorf("Expected inventory account %v, got %v", payable.ID, purchase.PayableEntry.Transactions[1].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[1].Value != 50 {
+			t.Errorf("Expected value %v, got %v", 50, purchase.PayableEntry.Transactions[1].Value)
+		}
+
+		if purchase.PaymentEntry != nil {
+			t.Error("Should not have payment entry")
+		}
 	})
 
 	t.Run("Change to not paid", func(t *testing.T) {
 		payable, _ := accounts.Create("Payables", models.Liability, nil)
 
-		result, _ := purchases.Find(4)
+		result, _ := purchases.Find(1)
 
 		var purchase *models.Purchase
-		result.First(&purchase)
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
 
 		purchase.Paid = false
 		purchase.PayableAccountID = &payable.ID
 
 		purchases.Update(purchase)
 
-		result, _ = purchases.Find(4)
-		result.With("PaymentEntry", "PayableEntry").First(&purchase)
+		result, _ = purchases.Find(1)
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
 
-		if purchase.PaymentEntry != nil {
+		if purchase.PaymentEntry != nil || purchase.PaymentEntryID != nil {
 			t.Error("Should have deleted payment entry")
 		}
 
-		if purchase.PayableEntry == nil {
+		if purchase.PayableEntry == nil || purchase.PayableEntryID == nil {
 			t.Error("Should have payable entry")
+		}
+
+		if purchase.PayableEntry.Transactions[0].AccountID != inventory.ID {
+			t.Errorf("Expected inventory account %v, got %v", inventory.ID, purchase.PayableEntry.Transactions[0].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[0].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[0].Value)
+		}
+
+		if purchase.PayableEntry.Transactions[1].AccountID != payable.ID {
+			t.Errorf("Expected inventory account %v, got %v", payable.ID, purchase.PayableEntry.Transactions[1].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[1].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[1].Value)
 		}
 	})
 
 	t.Run("Change to paid", func(t *testing.T) {
-		result, _ := purchases.Find(4)
+		result, _ := purchases.Find(1)
 
 		var purchase *models.Purchase
 		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
+
+		payableId := *purchase.PayableAccountID
 
 		purchase.Paid = true
 		purchase.PaymentAccountID = &cash.ID
 
 		purchases.Update(purchase)
 
-		result, _ = purchases.Find(4)
-		result.With("PaymentEntry", "PayableEntry").First(&purchase)
+		result, _ = purchases.Find(1)
+		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
 
-		if purchase.PaymentEntry == nil {
+		if purchase.PaymentEntryID == nil || purchase.PaymentEntry == nil {
 			t.Error("Should have payment entry")
 		}
 
-		if purchase.PayableEntry == nil {
+		if purchase.PayableEntryID == nil || purchase.PayableEntry == nil {
 			t.Error("Should have payable entry")
+		}
+
+		if purchase.PayableEntry.Transactions[0].AccountID != inventory.ID {
+			t.Errorf("Expected inventory account %v, got %v", inventory.ID, purchase.PayableEntry.Transactions[0].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[0].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[0].Value)
+		}
+
+		if purchase.PayableEntry.Transactions[1].AccountID != payableId {
+			t.Errorf("Expected inventory account %v, got %v", payableId, purchase.PayableEntry.Transactions[1].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[1].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[1].Value)
+		}
+
+		////
+
+		if purchase.PaymentEntry.Transactions[0].AccountID != payableId {
+			t.Errorf("Expected payable account %v, got %v", payableId, purchase.PaymentEntry.Transactions[0].AccountID)
+		}
+
+		if purchase.PaymentEntry.Transactions[0].Value != -5*155.75 {
+			t.Errorf("Expected value %v, got %v", -5*155.75, purchase.PaymentEntry.Transactions[0].Value)
+		}
+
+		if purchase.PaymentEntry.Transactions[1].AccountID != cash.ID {
+			t.Errorf("Expected inventory account %v, got %v", cash.ID, purchase.PaymentEntry.Transactions[1].AccountID)
+		}
+
+		if purchase.PaymentEntry.Transactions[1].Value != -5*155.75 {
+			t.Errorf("Expected value %v, got %v", -5*155.75, purchase.PaymentEntry.Transactions[1].Value)
 		}
 	})
 
 	t.Run("Change to not paid again", func(t *testing.T) {
 		payable, _ := accounts.Create("Payables", models.Liability, nil)
 
-		result, _ := purchases.Find(4)
+		result, _ := purchases.Find(1)
 
 		var purchase *models.Purchase
 		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
@@ -457,15 +529,31 @@ func TestPurchases(t *testing.T) {
 
 		purchases.Update(purchase)
 
-		result, _ = purchases.Find(4)
+		result, _ = purchases.Find(1)
 		result.With("PaymentEntry.Transactions", "PayableEntry.Transactions").First(&purchase)
 
-		if purchase.PaymentEntry != nil {
+		if purchase.PaymentEntryID != nil || purchase.PaymentEntry != nil {
 			t.Error("Should have deleted payment entry")
 		}
 
-		if purchase.PayableEntry == nil {
+		if purchase.PayableEntryID == nil || purchase.PayableEntry == nil {
 			t.Error("Should have payable entry")
+		}
+
+		if purchase.PayableEntry.Transactions[0].AccountID != inventory.ID {
+			t.Errorf("Expected inventory account %v, got %v", inventory.ID, purchase.PayableEntry.Transactions[0].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[0].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[0].Value)
+		}
+
+		if purchase.PayableEntry.Transactions[1].AccountID != payable.ID {
+			t.Errorf("Expected inventory account %v, got %v", payable.ID, purchase.PayableEntry.Transactions[1].AccountID)
+		}
+
+		if purchase.PayableEntry.Transactions[1].Value != 5*155.75 {
+			t.Errorf("Expected value %v, got %v", 5*155.75, purchase.PayableEntry.Transactions[1].Value)
 		}
 	})
 }
