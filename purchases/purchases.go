@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"example.com/accounting/database"
+	"example.com/accounting/events"
 	"example.com/accounting/models"
 	"example.com/accounting/products"
 )
@@ -13,54 +14,142 @@ var (
 	ErrPayableAccountMissing = errors.New("Payable account is required")
 )
 
+func CreateStockEntry(data interface{}) {
+	db, _ := database.GetConnection()
+	purchase := data.(*models.Purchase)
+
+	purchase.StockEntry = &models.StockEntry{
+		Price:     purchase.Price,
+		Qty:       purchase.Qty,
+		ProductID: purchase.ProductID,
+	}
+
+	db.Update(purchase)
+}
+
+func UpdateStockEntry(data interface{}) {
+	db, _ := database.GetConnection()
+	purchase := data.(*models.Purchase)
+
+	if purchase.StockEntryID != nil {
+		if purchase.StockEntry == nil {
+			db.Find(&models.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
+		}
+
+		purchase.StockEntry.Qty = purchase.Qty
+		purchase.StockEntry.Price = purchase.Price
+		purchase.StockEntry.ProductID = purchase.ProductID
+
+		db.Update(purchase)
+	}
+}
+
+func CreateAccountingEntry(data interface{}) {
+	db, _ := database.GetConnection()
+	purchase := data.(*models.Purchase)
+
+	var product *models.Product
+	products.Find(purchase.ProductID).First(&product)
+
+	price := purchase.Price * float64(purchase.Qty)
+
+	if purchase.Paid {
+		purchase.PaymentEntry = &models.Entry{
+			Description: "Purchase of product",
+			Transactions: []*models.Transaction{
+				{Value: price, AccountID: product.InventoryAccountID},
+				{Value: -price, AccountID: *purchase.PaymentAccountID},
+			},
+		}
+	} else {
+		purchase.PayableEntry = &models.Entry{
+			Description: "Purchase of product",
+			Transactions: []*models.Transaction{
+				{Value: price, AccountID: product.InventoryAccountID},
+				{Value: price, AccountID: *purchase.PayableAccountID},
+			},
+		}
+	}
+
+	db.Update(purchase)
+}
+
+func UpdateAccountingEntry(data interface{}) {
+	db, _ := database.GetConnection()
+	purchase := data.(*models.Purchase)
+
+	var product *models.Product
+	products.Find(purchase.ProductID).First(&product)
+
+	price := purchase.Price * float64(purchase.Qty)
+
+	if purchase.PayableEntryID != nil {
+		// update existing payable entry
+		purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
+		purchase.PayableEntry.Transactions[0].Value = price
+
+		purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
+		purchase.PayableEntry.Transactions[1].Value = price
+	}
+
+	if purchase.Paid {
+		if purchase.PaymentEntryID != nil {
+			// update existing payment entry
+			purchase.PaymentEntry.Transactions[0].AccountID = product.InventoryAccountID
+			purchase.PaymentEntry.Transactions[0].Value = price
+
+			purchase.PaymentEntry.Transactions[1].AccountID = *purchase.PaymentAccountID
+			purchase.PaymentEntry.Transactions[1].Value = -price
+		} else {
+			// create payment entry
+			purchase.PaymentEntry = &models.Entry{
+				Description: "Payment of purchase of product",
+				Transactions: []*models.Transaction{
+					{Value: -price, AccountID: *purchase.PayableAccountID},
+					{Value: -price, AccountID: *purchase.PaymentAccountID},
+				},
+			}
+		}
+	} else {
+		if purchase.PayableEntryID == nil {
+			purchase.PayableEntry = &models.Entry{
+				Description: "Purchase of product",
+				Transactions: []*models.Transaction{
+					{Value: price, AccountID: product.InventoryAccountID},
+					{Value: price, AccountID: *purchase.PayableAccountID},
+				},
+			}
+		}
+
+		if purchase.PaymentEntryID != nil {
+			db.Delete(&models.Entry{}, *purchase.PaymentEntryID)
+			purchase.PaymentEntryID = nil
+			purchase.PaymentEntry = nil
+		}
+	}
+
+	db.Update(purchase)
+}
+
 func Create(purchase *models.Purchase) (*models.Purchase, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := db.Transaction(func() error {
-		var product *models.Product
-		if err := products.Find(purchase.ProductID).First(&product); err != nil {
-			return err
-		}
+	if purchase.Paid && purchase.PaymentAccountID == nil {
+		return nil, ErrPaymentAccountMissing
+	}
 
-		purchase.StockEntry = &models.StockEntry{
-			Price:     purchase.Price,
-			Qty:       purchase.Qty,
-			ProductID: purchase.ProductID,
-		}
+	if !purchase.Paid && purchase.PayableAccountID == nil {
+		return nil, ErrPayableAccountMissing
+	}
 
-		if purchase.Paid {
-			if purchase.PaymentAccountID == nil {
-				return ErrPaymentAccountMissing
-			}
-
-			purchase.PaymentEntry = &models.Entry{
-				Description: "Purchase of product",
-				Transactions: []*models.Transaction{
-					{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
-					{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PaymentAccountID},
-				},
-			}
-		} else {
-			if purchase.PayableAccountID == nil {
-				return ErrPayableAccountMissing
-			}
-
-			purchase.PayableEntry = &models.Entry{
-				Description: "Purchase of product",
-				Transactions: []*models.Transaction{
-					{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
-					{Value: purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
-				},
-			}
-		}
-
-		return db.Create(purchase)
-	}); err != nil {
+	if err := db.Create(purchase); err != nil {
 		return nil, err
 	}
+
+	events.Dispatch(events.PurchaseCreated, purchase)
 
 	return purchase, nil
 }
@@ -87,89 +176,21 @@ func Update(purchase *models.Purchase) error {
 		return err
 	}
 
-	return db.Transaction(func() error {
-		var product *models.Product
-		if err := products.Find(purchase.ProductID).First(&product); err != nil {
-			return err
-		}
+	if purchase.Paid && purchase.PaymentAccountID == nil {
+		return ErrPaymentAccountMissing
+	}
 
-		if purchase.StockEntryID != nil {
-			if purchase.StockEntry == nil {
-				db.Find(&models.StockEntry{}).Where("ID", purchase.StockEntryID).First(&purchase.StockEntry)
-			}
+	if !purchase.Paid && purchase.PayableAccountID == nil {
+		return ErrPayableAccountMissing
+	}
 
-			purchase.StockEntry.Qty = purchase.Qty
-			purchase.StockEntry.Price = purchase.Price
-			purchase.StockEntry.ProductID = purchase.ProductID
-		}
+	if err := db.Update(purchase); err != nil {
+		return err
+	}
 
-		if purchase.Paid {
-			if purchase.PaymentAccountID == nil {
-				return ErrPaymentAccountMissing
-			}
+	events.Dispatch(events.PurchaseUpdated, purchase)
 
-			if purchase.PaymentEntryID != nil {
-				purchase.PaymentEntry.Transactions[0].AccountID = product.InventoryAccountID
-				purchase.PaymentEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
-
-				purchase.PaymentEntry.Transactions[1].AccountID = *purchase.PaymentAccountID
-				purchase.PaymentEntry.Transactions[1].Value = -purchase.Price * float64(purchase.Qty)
-			} else if purchase.PayableEntryID != nil {
-				if purchase.PayableAccountID == nil {
-					return ErrPayableAccountMissing
-				}
-
-				// create payment entry
-				purchase.PaymentEntry = &models.Entry{
-					Description: "Payment of purchase of product",
-					Transactions: []*models.Transaction{
-						{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
-						{Value: -purchase.Price * float64(purchase.Qty), AccountID: *purchase.PaymentAccountID},
-					},
-				}
-			}
-
-			if purchase.PayableEntryID != nil {
-				purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
-				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
-
-				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
-				purchase.PayableEntry.Transactions[1].Value = purchase.Price * float64(purchase.Qty)
-			}
-		} else {
-			if purchase.PayableAccountID == nil {
-				return ErrPayableAccountMissing
-			}
-
-			if purchase.PayableEntryID == nil {
-				purchase.PayableEntry = &models.Entry{
-					Description: "Purchase of product",
-					Transactions: []*models.Transaction{
-						{Value: purchase.Price * float64(purchase.Qty), AccountID: product.InventoryAccountID},
-						{Value: purchase.Price * float64(purchase.Qty), AccountID: *purchase.PayableAccountID},
-					},
-				}
-			} else {
-				purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
-				purchase.PayableEntry.Transactions[0].Value = purchase.Price * float64(purchase.Qty)
-
-				purchase.PayableEntry.Transactions[1].AccountID = *purchase.PayableAccountID
-				purchase.PayableEntry.Transactions[1].Value = purchase.Price * float64(purchase.Qty)
-			}
-
-			if purchase.PaymentEntryID != nil {
-				db.Delete(&models.Entry{}, *purchase.PaymentEntryID)
-				purchase.PaymentEntryID = nil
-				purchase.PaymentEntry = nil
-			}
-		}
-
-		if err := db.Update(purchase); err != nil {
-			return err
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func Delete(id uint) error {

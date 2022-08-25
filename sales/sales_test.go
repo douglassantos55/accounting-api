@@ -34,6 +34,7 @@ func TestSales(t *testing.T) {
 	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
 
 	events.Handle(events.SaleCreated, sales.ReduceProductStock)
+	events.Handle(events.PurchaseCreated, purchases.CreateStockEntry)
 
 	t.Run("Create", func(t *testing.T) {
 		customer := &models.Customer{Name: "John Doe"}

@@ -6,6 +6,7 @@ import (
 
 	"example.com/accounting/accounts"
 	"example.com/accounting/database"
+	"example.com/accounting/events"
 	"example.com/accounting/models"
 	"example.com/accounting/products"
 	"example.com/accounting/purchases"
@@ -22,6 +23,12 @@ func TestPurchases(t *testing.T) {
 	db.Migrate(&models.Transaction{})
 	db.Migrate(&models.Product{})
 	db.Migrate(&models.Purchase{})
+
+	events.Handle(events.PurchaseCreated, purchases.CreateStockEntry)
+	events.Handle(events.PurchaseCreated, purchases.CreateAccountingEntry)
+
+	events.Handle(events.PurchaseUpdated, purchases.UpdateStockEntry)
+	events.Handle(events.PurchaseUpdated, purchases.UpdateAccountingEntry)
 
 	cash, _ := accounts.Create("Cash & Equivalents", models.Asset, nil)
 	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)

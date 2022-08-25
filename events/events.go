@@ -4,6 +4,8 @@ type Event int
 
 const (
 	SaleCreated Event = iota
+	PurchaseCreated
+	PurchaseUpdated
 )
 
 var handlers map[Event][]func(data interface{})
@@ -16,9 +18,7 @@ func Handle(event Event, handler func(data interface{})) {
 }
 
 func Dispatch(event Event, data interface{}) {
-	for _, eventHandlers := range handlers {
-		for _, handler := range eventHandlers {
-			handler(data)
-		}
+	for _, handler := range handlers[event] {
+		handler(data)
 	}
 }
