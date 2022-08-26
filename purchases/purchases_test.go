@@ -32,16 +32,14 @@ func TestPurchases(t *testing.T) {
 
 	cash, _ := accounts.Create("Cash & Equivalents", models.Asset, nil)
 	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
-	receivable, _ := accounts.Create("Receivables", models.Asset, nil)
 	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
 
 	products.Create(&models.Product{
-		Name:                "Prod 1",
-		Price:               100,
-		Purchasable:         true,
-		RevenueAccountID:    &revenue.ID,
-		ReceivableAccountID: &receivable.ID,
-		InventoryAccountID:  inventory.ID,
+		Name:               "Prod 1",
+		Price:              100,
+		Purchasable:        true,
+		RevenueAccountID:   &revenue.ID,
+		InventoryAccountID: inventory.ID,
 	})
 
 	t.Run("Create", func(t *testing.T) {

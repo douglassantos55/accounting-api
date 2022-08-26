@@ -80,10 +80,6 @@ func validateAccounts(product *models.Product) error {
 		if product.RevenueAccountID == nil {
 			return ErrRevenueAccountMissing
 		}
-
-		if product.ReceivableAccountID == nil {
-			return ErrReceivableAccountMissing
-		}
 	}
 
 	return nil

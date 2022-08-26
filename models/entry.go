@@ -1,6 +1,8 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"example.com/accounting/database"
+)
 
 type Entry struct {
 	database.Model
@@ -14,7 +16,14 @@ func (e Entry) IsBalanced() bool {
 	totalDebit := 0.0
 	totalCredit := 0.0
 	for _, transaction := range e.Transactions {
-		if transaction.Account.TransactionType() == Debit {
+		account := transaction.Account
+
+		if account == nil {
+			db, _ := database.GetConnection()
+			db.Find(Account{}).Where("ID", transaction.AccountID).First(&account)
+		}
+
+		if account.TransactionType() == Debit {
 			totalDebit += transaction.Value
 		} else {
 			totalCredit += transaction.Value

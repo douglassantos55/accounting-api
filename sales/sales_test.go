@@ -29,12 +29,17 @@ func TestSales(t *testing.T) {
 	db.Migrate(&models.Product{})
 	db.Migrate(&models.StockEntry{})
 
-	accounts.Create("Revenue", models.Revenue, nil)
+	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
+	costOfSales, _ := accounts.Create("Cost of Sales", models.Expense, nil)
+
 	cash, _ := accounts.Create("Cash", models.Asset, nil)
 	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
 
-	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 	events.Handle(events.PurchaseCreated, purchases.CreateStockEntry)
+	events.Handle(events.PurchaseCreated, purchases.CreateAccountingEntry)
+
+	events.Handle(events.SaleCreated, sales.CreateAccountingEntry)
+	events.Handle(events.SaleCreated, sales.ReduceProductStock)
 
 	t.Run("Create", func(t *testing.T) {
 		customer := &models.Customer{Name: "John Doe"}
@@ -44,8 +49,10 @@ func TestSales(t *testing.T) {
 				Qty:   1,
 				Price: 100,
 				Product: &models.Product{
-					Name:               "Mouse",
-					InventoryAccountID: inventory.ID,
+					Name:                "Mouse",
+					RevenueAccountID:    &revenue.ID,
+					CostOfSaleAccountID: &costOfSales.ID,
+					InventoryAccountID:  inventory.ID,
 					StockEntries: []*models.StockEntry{
 						{Qty: 100, Price: 99.3},
 					}},
@@ -54,15 +61,25 @@ func TestSales(t *testing.T) {
 				Qty:   2,
 				Price: 30,
 				Product: &models.Product{
-					Name:               "Mousepad",
-					InventoryAccountID: inventory.ID,
+					Name:                "Mousepad",
+					RevenueAccountID:    &revenue.ID,
+					CostOfSaleAccountID: &costOfSales.ID,
+					InventoryAccountID:  inventory.ID,
 					StockEntries: []*models.StockEntry{
 						{Qty: 100, Price: 29.5},
 					}},
 			},
 		}
 
-		sale, err := sales.Create(customer, items)
+		sale := &sales.Sale{
+			Items:            items,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+			Customer:         customer,
+		}
+
+		err := sales.Create(sale)
+
 		if err != nil {
 			t.Error(err)
 		} else {
@@ -82,47 +99,70 @@ func TestSales(t *testing.T) {
 				Qty:   1,
 				Price: 100,
 				Product: &models.Product{
-					Name:               "Mouse",
-					InventoryAccountID: inventory.ID,
+					Name:                "Mouse",
+					RevenueAccountID:    &revenue.ID,
+					CostOfSaleAccountID: &costOfSales.ID,
+					InventoryAccountID:  inventory.ID,
 				},
 			},
 			{
 				Qty:   2,
 				Price: 30,
 				Product: &models.Product{
-					Name:               "Mousepad",
-					InventoryAccountID: inventory.ID,
+					Name:                "Mousepad",
+					RevenueAccountID:    &revenue.ID,
+					CostOfSaleAccountID: &costOfSales.ID,
+					InventoryAccountID:  inventory.ID,
 				},
 			},
 		}
 
-		_, err := sales.Create(nil, items)
+		err := sales.Create(&sales.Sale{
+			Items:            items,
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
+
 		if err == nil {
 			t.Error("Should not create without customer")
 		}
+
 		if !errors.Is(err, sales.ErrCustomerMissing) {
 			t.Errorf("Should return ErrCustomerMissing, got %v", err)
 		}
 	})
 
 	t.Run("Create without items", func(t *testing.T) {
-		_, err := sales.Create(&models.Customer{}, nil)
+		err := sales.Create(&sales.Sale{
+			Customer:         &models.Customer{},
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+		})
+
 		if err == nil {
 			t.Error("Should not create without items")
 		}
+
 		if !errors.Is(err, sales.ErrItemsMissing) {
 			t.Errorf("Should return ErrItemsMissing, got %v", err)
 		}
 	})
 
 	t.Run("Create without stock", func(t *testing.T) {
-		_, err := sales.Create(&models.Customer{}, []*sales.Item{
-			{
-				Qty:   1,
-				Price: 100,
-				Product: &models.Product{
-					Name:               "Mouse",
-					InventoryAccountID: inventory.ID,
+		err := sales.Create(&sales.Sale{
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+			Customer:         &models.Customer{},
+			Items: []*sales.Item{
+				{
+					Qty:   1,
+					Price: 100,
+					Product: &models.Product{
+						Name:                "Mouse",
+						RevenueAccountID:    &revenue.ID,
+						CostOfSaleAccountID: &costOfSales.ID,
+						InventoryAccountID:  inventory.ID,
+					},
 				},
 			},
 		})
@@ -136,17 +176,85 @@ func TestSales(t *testing.T) {
 		}
 	})
 
+	t.Run("Create without payment account", func(t *testing.T) {
+		err := sales.Create(&sales.Sale{
+			Paid:     true,
+			Customer: &models.Customer{},
+			Items: []*sales.Item{
+				{
+					Qty:   1,
+					Price: 100,
+					Product: &models.Product{
+						Name:                "Mouse",
+						RevenueAccountID:    &revenue.ID,
+						CostOfSaleAccountID: &costOfSales.ID,
+						InventoryAccountID:  inventory.ID,
+						StockEntries: []*models.StockEntry{
+							{Qty: 100, Price: 99.3},
+						},
+					},
+				},
+			},
+		})
+
+		if err == nil {
+			t.Error("Should not create without payment account")
+		}
+
+		if !errors.Is(err, sales.ErrPaymentAccountMissing) {
+			t.Errorf("Should return ErrPaymentAccountMissing, got %v", err)
+		}
+	})
+
+	t.Run("Create without receivable account", func(t *testing.T) {
+		err := sales.Create(&sales.Sale{
+			Paid:             false,
+			PaymentAccountID: &cash.ID,
+			Customer:         &models.Customer{},
+			Items: []*sales.Item{
+				{
+					Qty:   1,
+					Price: 100,
+					Product: &models.Product{
+						Name:                "Mouse",
+						RevenueAccountID:    &revenue.ID,
+						CostOfSaleAccountID: &costOfSales.ID,
+						InventoryAccountID:  inventory.ID,
+						StockEntries: []*models.StockEntry{
+							{Qty: 100, Price: 99.3},
+						},
+					},
+				},
+			},
+		})
+
+		if err == nil {
+			t.Error("Should not create without payment account")
+		}
+
+		if !errors.Is(err, sales.ErrReceivableAccountMissing) {
+			t.Errorf("Should return ErrReceivableAccountMissing, got %v", err)
+		}
+	})
+
 	t.Run("List", func(t *testing.T) {
-		sales.Create(&models.Customer{Name: "Jane Doe"}, []*sales.Item{
-			{
-				Qty:   1,
-				Price: 100,
-				Product: &models.Product{
-					Name:               "Mouse",
-					InventoryAccountID: inventory.ID,
-					StockEntries: []*models.StockEntry{
-						{Qty: 11, Price: 101.37},
-					}},
+		sales.Create(&sales.Sale{
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+			Customer:         &models.Customer{Name: "Jane Doe"},
+			Items: []*sales.Item{
+				{
+					Qty:   1,
+					Price: 100,
+					Product: &models.Product{
+						Name:                "Mouse",
+						RevenueAccountID:    &revenue.ID,
+						InventoryAccountID:  inventory.ID,
+						CostOfSaleAccountID: &costOfSales.ID,
+						StockEntries: []*models.StockEntry{
+							{Qty: 11, Price: 101.37},
+						}},
+				},
 			},
 		})
 
@@ -244,9 +352,11 @@ func TestSales(t *testing.T) {
 
 	t.Run("Reduces product stock", func(t *testing.T) {
 		prod := &models.Product{
-			Name:               "Prod",
-			Price:              15,
-			InventoryAccountID: inventory.ID,
+			Name:                "Prod",
+			Price:               15,
+			RevenueAccountID:    &revenue.ID,
+			CostOfSaleAccountID: &costOfSales.ID,
+			InventoryAccountID:  inventory.ID,
 		}
 
 		if err := products.Create(prod); err != nil {
@@ -278,7 +388,12 @@ func TestSales(t *testing.T) {
 			t.Error(err)
 		}
 
-		if _, err := sales.Create(customer, []*sales.Item{{Qty: 50, ProductID: prod.ID}}); err != nil {
+		if err := sales.Create(&sales.Sale{
+			Paid:             true,
+			PaymentAccountID: &cash.ID,
+			Customer:         customer,
+			Items:            []*sales.Item{{Qty: 50, ProductID: prod.ID}},
+		}); err != nil {
 			t.Error(err)
 		}
 
@@ -291,5 +406,95 @@ func TestSales(t *testing.T) {
 		if prod.Inventory() != 20 {
 			t.Errorf("Expected stock %v, got %v", 20, prod.Inventory())
 		}
+	})
+
+	t.Run("Reduces inventory accounts", func(t *testing.T) {
+		cogs, _ := accounts.Create("COGS", models.Expense, nil)
+		rev, _ := accounts.Create("Revenue", models.Revenue, nil)
+
+		receivable, _ := accounts.Create("Receivable", models.Asset, nil)
+		payable, _ := accounts.Create("Payable", models.Liability, nil)
+
+		invAccount1, _ := accounts.Create("Inventory 1", models.Asset, nil)
+		invAccount2, _ := accounts.Create("Inventory 2", models.Asset, nil)
+
+		prod1 := &models.Product{
+			Price:               25,
+			Name:                "Product 1",
+			CostOfSaleAccountID: &cogs.ID,
+			RevenueAccountID:    &rev.ID,
+			InventoryAccountID:  invAccount1.ID,
+		}
+
+		products.Create(prod1)
+
+		prod2 := &models.Product{
+			Price:               50,
+			Name:                "Product 2",
+			CostOfSaleAccountID: &cogs.ID,
+			RevenueAccountID:    &rev.ID,
+			InventoryAccountID:  invAccount2.ID,
+		}
+
+		products.Create(prod2)
+
+		purchases.Create(&models.Purchase{
+			ProductID:        prod1.ID,
+			Qty:              20,
+			Paid:             true,
+			Price:            25,
+			PaymentAccountID: &cash.ID,
+		})
+
+		purchases.Create(&models.Purchase{
+			ProductID:        prod2.ID,
+			Qty:              20,
+			Paid:             false,
+			Price:            50,
+			PayableAccountID: &payable.ID,
+		})
+
+		if err := sales.Create(&sales.Sale{
+			Paid:                false,
+			ReceivableAccountID: &receivable.ID,
+			Customer:            &models.Customer{Name: "TNT"},
+			Items: []*sales.Item{
+				{
+					Qty:       10,
+					Price:     25,
+					ProductID: prod1.ID,
+				},
+				{
+					Qty:       10,
+					Price:     55,
+					ProductID: prod2.ID,
+				},
+			},
+		}); err != nil {
+			t.Error(err)
+		}
+
+		products.Find(prod1.ID).With("StockEntries").First(&prod1)
+		if prod1.Inventory() != 10 {
+			t.Errorf("Expected stock %v, got %v", 10, prod1.Inventory())
+		}
+
+		if err := accounts.Find(invAccount1.ID).With("Transactions").First(&invAccount1); err != nil {
+			t.Error(err)
+		}
+		if invAccount1.Balance() != 250 {
+			t.Errorf("Expected balance %v, got %v", 250, invAccount1.Balance())
+		}
+
+		products.Find(prod2.ID).With("StockEntries").First(&prod2)
+		if prod2.Inventory() != 10 {
+			t.Errorf("Expected stock %v, got %v", 10, prod2.Inventory())
+		}
+
+		accounts.Find(invAccount2.ID).With("Transactions").First(&invAccount2)
+		if invAccount2.Balance() != 500 {
+			t.Errorf("Expected balance %v, got %v", 500, invAccount2.Balance())
+		}
+
 	})
 }

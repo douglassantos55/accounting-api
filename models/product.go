@@ -9,8 +9,8 @@ type Product struct {
 	Purchasable         bool
 	RevenueAccountID    *uint
 	RevenueAccount      *Account `gorm:"constraint:OnDelete:SET NULL;"`
-	ReceivableAccountID *uint
-	ReceivableAccount   *Account `gorm:"constraint:OnDelete:SET NULL;"`
+	CostOfSaleAccountID *uint
+	CostOfSaleAccount   *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	InventoryAccountID  uint
 	InventoryAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	VendorID            *uint
