@@ -21,6 +21,7 @@ var (
 
 func CreateAccountingEntry(data interface{}) {
 	sale := data.(*models.Sale)
+	Find(sale.ID).With("*").First(&sale)
 
 	for _, item := range sale.Items {
 		var product *models.Product
@@ -29,7 +30,13 @@ func CreateAccountingEntry(data interface{}) {
 		costOfSale := 0.0
 		left := item.Qty
 
-		// TODO: consider FIFO or LIFO
+		// Invert entries for LIFO
+		if sale.Company.Stock == models.LIFO {
+			for i, j := 0, len(product.StockEntries)-1; i < j; i, j = i+1, j-1 {
+				product.StockEntries[i], product.StockEntries[j] = product.StockEntries[j], product.StockEntries[i]
+			}
+		}
+
 		for _, entry := range product.StockEntries {
 			qty := math.Min(float64(left), float64(entry.Qty))
 			costOfSale += entry.Price * qty
@@ -76,10 +83,17 @@ func ReduceProductStock(sale interface{}) {
 
 	for _, item := range sale.(*models.Sale).Items {
 		var product *models.Product
-		products.Find(item.ProductID).With("StockEntries").First(&product)
+		products.Find(item.ProductID).With("Company", "StockEntries").First(&product)
+
+		// Invert entries for LIFO
+		if product.Company.Stock == models.LIFO {
+			for i, j := 0, len(product.StockEntries)-1; i < j; i, j = i+1, j-1 {
+				product.StockEntries[i], product.StockEntries[j] = product.StockEntries[j], product.StockEntries[i]
+			}
+		}
 
 		left := item.Qty
-		// TODO: consider FIFO or LIFO
+
 		for _, entry := range product.StockEntries {
 			qty := entry.Qty
 			if entry.Qty > left {

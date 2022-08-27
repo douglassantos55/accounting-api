@@ -611,4 +611,101 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected balance %v, got %v", 600, payable.Balance())
 		}
 	})
+
+	t.Run("Considers FIFO/LIFO", func(t *testing.T) {
+		db.Create(&models.Company{
+			Name:  "LIFO Company",
+			Stock: models.LIFO,
+		})
+
+		cogs, _ := accounts.Create(2, "COGS", models.Expense, nil)
+		rev, _ := accounts.Create(2, "Revenue", models.Revenue, nil)
+
+		payment, _ := accounts.Create(2, "Payment", models.Asset, nil)
+		payable, _ := accounts.Create(2, "Payable", models.Liability, nil)
+		invAccount, _ := accounts.Create(2, "Inventory", models.Asset, nil)
+
+		prod := &models.Product{
+			Price:               25,
+			Name:                "Product",
+			CompanyID:           2,
+			CostOfSaleAccountID: &cogs.ID,
+			RevenueAccountID:    &rev.ID,
+			InventoryAccountID:  invAccount.ID,
+		}
+
+		products.Create(prod)
+
+		purchases.Create(&models.Purchase{
+			CompanyID:        2,
+			ProductID:        prod.ID,
+			Qty:              20,
+			Paid:             false,
+			Price:            25,
+			PayableAccountID: &payable.ID, // 500
+		})
+
+		purchases.Create(&models.Purchase{
+			CompanyID:        2,
+			ProductID:        prod.ID,
+			Qty:              20,
+			Paid:             false,
+			Price:            30,
+			PayableAccountID: &payable.ID, // 600
+		})
+
+		if err := sales.Create(&models.Sale{
+			CompanyID:        2,
+			Paid:             true,
+			PaymentAccountID: &payment.ID, // 750
+			Customer:         &models.Customer{Name: "TNT", CompanyID: 2},
+			Items: []*models.Item{
+				{
+					Qty:       30,
+					Price:     25,
+					ProductID: prod.ID,
+				},
+			},
+		}); err != nil {
+			t.Error(err)
+		}
+
+		products.Find(prod.ID).With("StockEntries").First(&prod)
+		if prod.Inventory() != 10 {
+			t.Errorf("Expected stock %v, got %v", 10, prod.Inventory())
+		}
+
+		for _, entry := range prod.StockEntries {
+			if entry.Price != 25 {
+				t.Errorf("Expected entry price %v, got %v", 25, entry.Price)
+			}
+		}
+
+		if err := accounts.Find(invAccount.ID).With("Transactions").First(&invAccount); err != nil {
+			t.Error(err)
+		}
+		if invAccount.Balance() != 250 {
+			t.Errorf("Expected balance %v, got %v", 250, invAccount.Balance())
+		}
+
+		accounts.Find(cogs.ID).With("Transactions").First(&cogs)
+		if cogs.Balance() != 850 {
+			t.Errorf("Expected balance %v, got %v", 850, cogs.Balance())
+		}
+
+		accounts.Find(rev.ID).With("Transactions").First(&rev)
+		if rev.Balance() != 750 {
+			t.Errorf("Expected balance %v, got %v", 750, rev.Balance())
+		}
+
+		accounts.Find(payment.ID).With("Transactions").First(&payment)
+		if payment.Balance() != 750 {
+			t.Errorf("Expected balance %v, got %v", 750, payment.Balance())
+		}
+
+		accounts.Find(payable.ID).With("Transactions").First(&payable)
+		if payable.Balance() != 1100 {
+			t.Errorf("Expected balance %v, got %v", 1100, payable.Balance())
+		}
+	})
 }
