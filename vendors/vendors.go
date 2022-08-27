@@ -13,7 +13,7 @@ func Create(companyId uint, name, cnpj string, address *models.Address) (*models
 	vendor := &models.Vendor{
 		Name:      name,
 		Cnpj:      cnpj,
-		CompanyID: 1,
+		CompanyID: companyId,
 		Address:   address,
 	}
 
