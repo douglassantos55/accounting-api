@@ -9,13 +9,14 @@ import (
 
 var ErrEntryNotBalanced = errors.New("Entry not balanced")
 
-func Create(description string, transactions []*models.Transaction) (*models.Entry, error) {
+func Create(companyId uint, description string, transactions []*models.Transaction) (*models.Entry, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 
 	entry := &models.Entry{
+		CompanyID:    companyId,
 		Description:  description,
 		Transactions: transactions,
 	}

@@ -15,8 +15,12 @@ func TestAccount(t *testing.T) {
 	db, _ := database.GetConnection()
 	db.Migrate(&models.Account{})
 
+    db.Create(&models.Company{
+        Name: "Testing Company",
+    })
+
 	t.Run("Create", func(t *testing.T) {
-		account, err := accounts.Create("Cash", models.Asset, nil)
+		account, err := accounts.Create(1, "Cash", models.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
@@ -32,9 +36,9 @@ func TestAccount(t *testing.T) {
 	})
 
 	t.Run("Create With Parent", func(t *testing.T) {
-		accounts.Create("Assets", models.Asset, nil)
+		accounts.Create(1, "Assets", models.Asset, nil)
 		accountID := uint(2)
-		cash, err := accounts.Create("Receivables", models.Asset, &accountID)
+		cash, err := accounts.Create(1, "Receivables", models.Asset, &accountID)
 
 		if err != nil {
 			t.Error(err)

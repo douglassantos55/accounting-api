@@ -16,9 +16,13 @@ func TestVendors(t *testing.T) {
 
 	db.Migrate(&models.Vendor{})
 
+	db.Create(&models.Company{
+		Name: "Testing Company",
+	})
+
 	t.Run("Create", func(t *testing.T) {
 		address := &models.Address{}
-		vendor, err := vendors.Create("Vendor 1", "15.152.412/4441-12", address)
+		vendor, err := vendors.Create(1, "Vendor 1", "15.152.412/4441-12", address)
 
 		if err != nil {
 			t.Error(err)
@@ -29,8 +33,15 @@ func TestVendors(t *testing.T) {
 		}
 	})
 
+	t.Run("Create without company", func(t *testing.T) {
+		address := &models.Address{}
+		if _, err := vendors.Create(0, "Vendor 1", "15.152.412/4441-12", address); err == nil {
+			t.Error("Should not create without company")
+		}
+	})
+
 	t.Run("Create without Address", func(t *testing.T) {
-		vendor, err := vendors.Create("Vendor 2", "25.252.212/2441-12", nil)
+		vendor, err := vendors.Create(1, "Vendor 2", "25.252.212/2441-12", nil)
 
 		if err != nil {
 			t.Error(err)

@@ -5,15 +5,16 @@ import (
 	"example.com/accounting/models"
 )
 
-func Create(name, cnpj string, address *models.Address) (*models.Vendor, error) {
+func Create(companyId uint, name, cnpj string, address *models.Address) (*models.Vendor, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 	vendor := &models.Vendor{
-		Name:    name,
-		Cnpj:    cnpj,
-		Address: address,
+		Name:      name,
+		Cnpj:      cnpj,
+		CompanyID: 1,
+		Address:   address,
 	}
 
 	if err := db.Create(vendor); err != nil {

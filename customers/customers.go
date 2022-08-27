@@ -5,17 +5,18 @@ import (
 	"example.com/accounting/models"
 )
 
-func Create(name string, email string, cpf string, phone string, address *models.Address) (*models.Customer, error) {
+func Create(companyId uint, name string, email string, cpf string, phone string, address *models.Address) (*models.Customer, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
 	}
 	customer := &models.Customer{
-		Name:    name,
-		Email:   email,
-		Phone:   phone,
-		Cpf:     cpf,
-		Address: address,
+		Name:      name,
+		Email:     email,
+		Phone:     phone,
+		Cpf:       cpf,
+		CompanyID: companyId,
+		Address:   address,
 	}
 	if err := db.Create(&customer); err != nil {
 		return nil, err

@@ -19,43 +19,8 @@ var (
 	ErrReceivableAccountMissing = errors.New("Receivable account is required")
 )
 
-type Sale struct {
-	database.Model
-	Paid              bool
-	Items             []*Item `gorm:"constraint:OnDelete:CASCADE;"`
-	Customer          *models.Customer
-	PaymentAccount    *models.Account `gorm:"constraint:OnDelete:SET NULL;"`
-	ReceivableAccount *models.Account `gorm:"constraint:OnDelete:SET NULL;"`
-
-	CustomerID          uint
-	PaymentAccountID    *uint
-	ReceivableAccountID *uint
-}
-
-func (s Sale) Total() float64 {
-	total := 0.0
-	for _, item := range s.Items {
-		total += item.Subtotal()
-	}
-	return total
-}
-
-type Item struct {
-	database.Model
-	Qty       uint
-	Price     float64
-	ProductID uint
-	Product   *models.Product
-	SaleID    uint
-	Sale      *Sale
-}
-
-func (i Item) Subtotal() float64 {
-	return float64(i.Qty) * i.Price
-}
-
 func CreateAccountingEntry(data interface{}) {
-	sale := data.(*Sale)
+	sale := data.(*models.Sale)
 
 	for _, item := range sale.Items {
 		var product *models.Product
@@ -102,14 +67,14 @@ func CreateAccountingEntry(data interface{}) {
 			})
 		}
 
-		entries.Create("Sale of product", transactions)
+		entries.Create(sale.CompanyID, "Sale of product", transactions)
 	}
 }
 
 func ReduceProductStock(sale interface{}) {
 	db, _ := database.GetConnection()
 
-	for _, item := range sale.(*Sale).Items {
+	for _, item := range sale.(*models.Sale).Items {
 		var product *models.Product
 		products.Find(item.ProductID).With("StockEntries").First(&product)
 
@@ -128,7 +93,7 @@ func ReduceProductStock(sale interface{}) {
 	}
 }
 
-func Create(sale *Sale) error {
+func Create(sale *models.Sale) error {
 	if sale.Customer == nil {
 		return ErrCustomerMissing
 	}
@@ -172,7 +137,7 @@ func List() database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Sale{})
+	return db.Find(&models.Sale{})
 }
 
 func Find(id uint) database.QueryResult {
@@ -180,7 +145,7 @@ func Find(id uint) database.QueryResult {
 	if err != nil {
 		return nil
 	}
-	return db.Find(&Sale{}).Where("ID", id)
+	return db.Find(&models.Sale{}).Where("ID", id)
 }
 
 func Delete(id uint) error {
@@ -188,5 +153,5 @@ func Delete(id uint) error {
 	if err != nil {
 		return nil
 	}
-	return db.Delete(&Sale{}, id)
+	return db.Delete(&models.Sale{}, id)
 }

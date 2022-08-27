@@ -24,20 +24,25 @@ func TestPurchases(t *testing.T) {
 	db.Migrate(&models.Product{})
 	db.Migrate(&models.Purchase{})
 
+	db.Create(&models.Company{
+		Name: "Testing Company",
+	})
+
 	events.Handle(events.PurchaseCreated, purchases.CreateStockEntry)
 	events.Handle(events.PurchaseCreated, purchases.CreateAccountingEntry)
 
 	events.Handle(events.PurchaseUpdated, purchases.UpdateStockEntry)
 	events.Handle(events.PurchaseUpdated, purchases.UpdateAccountingEntry)
 
-	cash, _ := accounts.Create("Cash & Equivalents", models.Asset, nil)
-	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
-	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
+	cash, _ := accounts.Create(1, "Cash & Equivalents", models.Asset, nil)
+	revenue, _ := accounts.Create(1, "Revenue", models.Revenue, nil)
+	inventory, _ := accounts.Create(1, "Inventory", models.Asset, nil)
 
 	products.Create(&models.Product{
 		Name:               "Prod 1",
 		Price:              100,
 		Purchasable:        true,
+		CompanyID:          1,
 		RevenueAccountID:   &revenue.ID,
 		InventoryAccountID: inventory.ID,
 	})
@@ -45,6 +50,7 @@ func TestPurchases(t *testing.T) {
 	t.Run("Create", func(t *testing.T) {
 		purchase, err := purchases.Create(&models.Purchase{
 			ProductID:        1,
+			CompanyID:        1,
 			Qty:              5,
 			Price:            155.75,
 			Paid:             true,
@@ -66,6 +72,7 @@ func TestPurchases(t *testing.T) {
 	t.Run("Create without product", func(t *testing.T) {
 		if _, err := purchases.Create(&models.Purchase{
 			ProductID:        0,
+			CompanyID:        1,
 			Qty:              5,
 			Price:            15.33,
 			Paid:             true,
@@ -78,6 +85,7 @@ func TestPurchases(t *testing.T) {
 
 	t.Run("Create stock entry", func(t *testing.T) {
 		products.Create(&models.Product{
+			CompanyID:          1,
 			Name:               "Prod 2",
 			Price:              16,
 			InventoryAccountID: inventory.ID,
@@ -85,6 +93,7 @@ func TestPurchases(t *testing.T) {
 
 		purchases.Create(&models.Purchase{
 			ProductID:        2,
+			CompanyID:        1,
 			Qty:              4,
 			Price:            153.22,
 			Paid:             true,
@@ -94,6 +103,7 @@ func TestPurchases(t *testing.T) {
 
 		purchases.Create(&models.Purchase{
 			ProductID:        2,
+			CompanyID:        1,
 			Qty:              4,
 			Price:            163.22,
 			Paid:             true,
@@ -103,6 +113,7 @@ func TestPurchases(t *testing.T) {
 
 		purchases.Create(&models.Purchase{
 			ProductID:        2,
+			CompanyID:        1,
 			Qty:              10,
 			Price:            157.11,
 			Paid:             true,
@@ -260,7 +271,7 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Updates stock entry", func(t *testing.T) {
-		payment, _ := accounts.Create("Cash", models.Asset, nil)
+		payment, _ := accounts.Create(1, "Cash", models.Asset, nil)
 
 		result, err := purchases.Find(4)
 		if err != nil {
@@ -329,20 +340,22 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Increase inventory account, reduce payment account", func(t *testing.T) {
-		account, err := accounts.Create("Inv", models.Asset, nil)
-		payment, err := accounts.Create("Cash", models.Asset, nil)
+		account, err := accounts.Create(1, "Inv", models.Asset, nil)
+		payment, err := accounts.Create(1, "Cash", models.Asset, nil)
 
 		if err != nil {
 			t.Error(err)
 		}
 
 		products.Create(&models.Product{
+			CompanyID:          1,
 			Name:               "Mice",
 			Price:              33.5,
 			InventoryAccountID: account.ID,
 		})
 
 		if _, err := purchases.Create(&models.Purchase{
+			CompanyID:        1,
 			ProductID:        3,
 			Qty:              100,
 			Price:            26.5,
@@ -371,9 +384,10 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Create not paid", func(t *testing.T) {
-		payable, _ := accounts.Create("Payables", models.Liability, nil)
+		payable, _ := accounts.Create(1, "Payables", models.Liability, nil)
 
 		if _, err := purchases.Create(&models.Purchase{
+			CompanyID: 1,
 			ProductID: 1,
 			Qty:       10,
 			Price:     5,
@@ -383,6 +397,7 @@ func TestPurchases(t *testing.T) {
 
 		purchase, err := purchases.Create(&models.Purchase{
 			ProductID:        1,
+			CompanyID:        1,
 			Qty:              10,
 			Price:            5,
 			PayableAccountID: &payable.ID,
@@ -422,7 +437,7 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Change to not paid", func(t *testing.T) {
-		payable, _ := accounts.Create("Payables", models.Liability, nil)
+		payable, _ := accounts.Create(1, "Payables", models.Liability, nil)
 
 		result, _ := purchases.Find(1)
 
@@ -522,7 +537,7 @@ func TestPurchases(t *testing.T) {
 	})
 
 	t.Run("Change to not paid again", func(t *testing.T) {
-		payable, _ := accounts.Create("Payables", models.Liability, nil)
+		payable, _ := accounts.Create(1, "Payables", models.Liability, nil)
 
 		result, _ := purchases.Find(1)
 

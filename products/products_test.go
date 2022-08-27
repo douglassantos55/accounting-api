@@ -21,14 +21,19 @@ func TestProducts(t *testing.T) {
 	db.Migrate(&models.StockEntry{})
 	db.Migrate(&models.Account{})
 
-	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
-	inventory, _ := accounts.Create("Inventory", models.Asset, nil)
+	db.Create(&models.Company{
+		Name: "Testing Company",
+	})
+
+	revenue, _ := accounts.Create(1, "Revenue", models.Revenue, nil)
+	inventory, _ := accounts.Create(1, "Inventory", models.Asset, nil)
 
 	t.Run("Create", func(t *testing.T) {
 		prod := &models.Product{
 			Name:               "Keyboard",
 			Price:              350.5,
 			Purchasable:        true,
+			CompanyID:          1,
 			RevenueAccountID:   &revenue.ID,
 			InventoryAccountID: inventory.ID,
 		}
@@ -59,6 +64,7 @@ func TestProducts(t *testing.T) {
 			Name:               "Coffe Powder",
 			Price:              33.6,
 			Purchasable:        true,
+			CompanyID:          1,
 			InventoryAccountID: inventory.ID,
 		})
 
@@ -71,6 +77,7 @@ func TestProducts(t *testing.T) {
 		err := products.Create(&models.Product{
 			Name:             "Concrete",
 			Price:            50.5,
+			CompanyID:        1,
 			Purchasable:      true,
 			RevenueAccountID: &revenue.ID,
 		})
@@ -85,6 +92,7 @@ func TestProducts(t *testing.T) {
 
 		err := products.Create(&models.Product{
 			Name:               "Door",
+			CompanyID:          1,
 			Price:              70.5,
 			Purchasable:        true,
 			RevenueAccountID:   &fakeId,
@@ -101,6 +109,7 @@ func TestProducts(t *testing.T) {
 
 		err := products.Create(&models.Product{
 			Name:               "Guitar",
+			CompanyID:          1,
 			Price:              720.5,
 			Purchasable:        true,
 			RevenueAccountID:   &revenue.ID,
@@ -115,6 +124,7 @@ func TestProducts(t *testing.T) {
 	t.Run("List", func(t *testing.T) {
 		products.Create(&models.Product{
 			Name:               "Monitor",
+			CompanyID:          1,
 			Price:              1350.5,
 			Purchasable:        true,
 			RevenueAccountID:   &revenue.ID,
@@ -125,6 +135,7 @@ func TestProducts(t *testing.T) {
 			Name:               "Mouse",
 			Price:              150.5,
 			Purchasable:        true,
+			CompanyID:          1,
 			RevenueAccountID:   &revenue.ID,
 			InventoryAccountID: inventory.ID,
 		})
@@ -275,12 +286,13 @@ func TestProducts(t *testing.T) {
 	})
 
 	t.Run("Create with Vendor", func(t *testing.T) {
-		vendor, err := vendors.Create("Vendor", "", nil)
+		vendor, err := vendors.Create(1, "Vendor", "", nil)
 		if err != nil {
 			t.Error(err)
 		}
 
 		if err := products.Create(&models.Product{
+			CompanyID:          1,
 			Name:               "Prod",
 			Price:              100,
 			VendorID:           &vendor.ID,
@@ -332,6 +344,7 @@ func TestProducts(t *testing.T) {
 			Price:              7000,
 			Purchasable:        false,
 			InventoryAccountID: inventory.ID,
+			CompanyID:          1,
 		})
 
 		if err != nil {

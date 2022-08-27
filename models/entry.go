@@ -9,6 +9,8 @@ type Entry struct {
 	Description  string
 	PurchaseID   *uint
 	Purchase     *Purchase
+	CompanyID    uint
+	Company      *Company
 	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
 }
 

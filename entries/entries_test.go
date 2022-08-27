@@ -20,11 +20,15 @@ func TestEntries(t *testing.T) {
 	db.Migrate(&models.Account{})
 	db.Migrate(&models.Transaction{})
 
-	revenue, _ := accounts.Create("Revenue", models.Revenue, nil)
-	cash, _ := accounts.Create("Cash", models.Asset, nil)
+    db.Create(&models.Company{
+        Name: "Testing Company",
+    })
+
+	revenue, _ := accounts.Create(1, "Revenue", models.Revenue, nil)
+	cash, _ := accounts.Create(1, "Cash", models.Asset, nil)
 
 	t.Run("Create", func(t *testing.T) {
-		entry, err := entries.Create("Description", []*models.Transaction{
+		entry, err := entries.Create(1, "Description", []*models.Transaction{
 			{Account: revenue, Value: 1000},
 			{Account: cash, Value: 1000},
 		})
@@ -49,7 +53,7 @@ func TestEntries(t *testing.T) {
 	})
 
 	t.Run("Unbalanced", func(t *testing.T) {
-		entry, err := entries.Create("Description", []*models.Transaction{
+		entry, err := entries.Create(1, "Description", []*models.Transaction{
 			{Account: revenue, Value: 1001},
 			{Account: cash, Value: 1000},
 		})
@@ -64,7 +68,7 @@ func TestEntries(t *testing.T) {
 	})
 
 	t.Run("List", func(t *testing.T) {
-		entries.Create("Entry 2", []*models.Transaction{
+		entries.Create(1, "Entry 2", []*models.Transaction{
 			{Account: revenue, Value: 333},
 			{Account: cash, Value: 333},
 		})

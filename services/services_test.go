@@ -18,10 +18,14 @@ func TestServices(t *testing.T) {
 	db.Migrate(&models.Service{})
 	db.Migrate(&models.Account{})
 
-	accounts.Create("Revenue", models.Revenue, nil)
+	db.Create(&models.Company{
+		Name: "Testing Company",
+	})
+
+	accounts.Create(1, "Revenue", models.Revenue, nil)
 
 	t.Run("Create", func(t *testing.T) {
-		service, err := services.Create("Service 1", 1)
+		service, err := services.Create(1, "Service 1", 1)
 		if err != nil {
 			t.Error(err)
 		}
@@ -31,20 +35,26 @@ func TestServices(t *testing.T) {
 	})
 
 	t.Run("Create without account", func(t *testing.T) {
-		if _, err := services.Create("Service 1", 0); err == nil {
+		if _, err := services.Create(1, "Service 1", 0); err == nil {
 			t.Error("Should not create without account")
 		}
 	})
 
 	t.Run("Create non existing account", func(t *testing.T) {
-		if _, err := services.Create("Service 1", 10); err == nil {
+		if _, err := services.Create(1, "Service 1", 10); err == nil {
 			t.Error("Should not create without account")
 		}
 	})
 
+	t.Run("Create without company", func(t *testing.T) {
+		if _, err := services.Create(0, "Service 1", 10); err == nil {
+			t.Error("Should not create without company")
+		}
+	})
+
 	t.Run("List", func(t *testing.T) {
-		services.Create("Service 2", 1)
-		services.Create("Service 3", 1)
+		services.Create(1, "Service 2", 1)
+		services.Create(1, "Service 3", 1)
 
 		var items []*models.Service
 		if err := services.List().Get(&items); err != nil {

@@ -5,7 +5,7 @@ import (
 	"example.com/accounting/models"
 )
 
-func Create(name string, accountID uint) (*models.Service, error) {
+func Create(companyId uint, name string, accountID uint) (*models.Service, error) {
 	db, err := database.GetConnection()
 	if err != nil {
 		return nil, err
@@ -13,6 +13,7 @@ func Create(name string, accountID uint) (*models.Service, error) {
 
 	service := &models.Service{
 		Name:      name,
+		CompanyID: companyId,
 		AccountID: accountID,
 	}
 

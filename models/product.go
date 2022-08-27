@@ -16,6 +16,8 @@ type Product struct {
 	VendorID            *uint
 	Vendor              *Vendor       `gorm:"constraint:OnDelete:SET NULL;"`
 	StockEntries        []*StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
+	CompanyID           uint
+	Company             *Company
 }
 
 func (p Product) Inventory() uint {
@@ -36,7 +38,9 @@ type StockEntry struct {
 
 type Vendor struct {
 	database.Model
-	Name    string
-	Cnpj    string
-	Address *Address `gorm:"embedded"`
+	Name      string
+	Cnpj      string
+	CompanyID uint
+	Company   *Company
+	Address   *Address `gorm:"embedded"`
 }

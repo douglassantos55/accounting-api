@@ -5,7 +5,7 @@ import (
 	"example.com/accounting/models"
 )
 
-func Create(name string, accType models.AccountType, parentID *uint) (*models.Account, error) {
+func Create(companyId uint, name string, accType models.AccountType, parentID *uint) (*models.Account, error) {
 	db, err := database.GetConnection()
 
 	if err != nil {
@@ -13,9 +13,10 @@ func Create(name string, accType models.AccountType, parentID *uint) (*models.Ac
 	}
 
 	account := &models.Account{
-		Name:     name,
-		Type:     accType,
-		ParentID: parentID,
+		Name:      name,
+		Type:      accType,
+		ParentID:  parentID,
+		CompanyID: companyId,
 	}
 
 	if err := db.Create(account); err != nil {

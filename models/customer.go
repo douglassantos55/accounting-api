@@ -4,11 +4,13 @@ import "example.com/accounting/database"
 
 type Customer struct {
 	database.Model
-	Name    string
-	Email   string
-	Cpf     string
-	Phone   string
-	Address *Address `gorm:"embedded"`
+	Name      string
+	Email     string
+	Cpf       string
+	Phone     string
+	Address   *Address `gorm:"embedded"`
+	CompanyID uint
+	Company   *Company
 }
 
 type Address struct {

@@ -55,6 +55,7 @@ func CreateAccountingEntry(data interface{}) {
 
 	if purchase.Paid {
 		purchase.PaymentEntry = &models.Entry{
+			CompanyID:   purchase.CompanyID,
 			Description: "Purchase of product",
 			Transactions: []*models.Transaction{
 				{Value: price, AccountID: product.InventoryAccountID},
@@ -63,6 +64,7 @@ func CreateAccountingEntry(data interface{}) {
 		}
 	} else {
 		purchase.PayableEntry = &models.Entry{
+			CompanyID:   purchase.CompanyID,
 			Description: "Purchase of product",
 			Transactions: []*models.Transaction{
 				{Value: price, AccountID: product.InventoryAccountID},
@@ -103,6 +105,7 @@ func UpdateAccountingEntry(data interface{}) {
 		} else {
 			// create payment entry
 			purchase.PaymentEntry = &models.Entry{
+				CompanyID:   purchase.CompanyID,
 				Description: "Payment of purchase of product",
 				Transactions: []*models.Transaction{
 					{Value: -price, AccountID: *purchase.PayableAccountID},
@@ -113,6 +116,7 @@ func UpdateAccountingEntry(data interface{}) {
 	} else {
 		if purchase.PayableEntryID == nil {
 			purchase.PayableEntry = &models.Entry{
+				CompanyID:   purchase.CompanyID,
 				Description: "Purchase of product",
 				Transactions: []*models.Transaction{
 					{Value: price, AccountID: product.InventoryAccountID},

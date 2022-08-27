@@ -7,4 +7,6 @@ type Service struct {
 	Name      string
 	AccountID uint
 	Account   *Account
+	CompanyID uint
+	Company   *Company
 }

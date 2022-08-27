@@ -15,6 +15,10 @@ func TestCustomers(t *testing.T) {
 	db, _ := database.GetConnection()
 	db.Migrate(&models.Customer{})
 
+    db.Create(&models.Company{
+        Name: "Testing Company",
+    })
+
 	t.Run("Create", func(t *testing.T) {
 		address := &models.Address{
 			Street:       "rua abc",
@@ -26,6 +30,7 @@ func TestCustomers(t *testing.T) {
 		}
 
 		customer, err := customers.Create(
+            1,
 			"John Doe",
 			"johndoe@email.com",
 			"753.515.151-15",
@@ -46,6 +51,7 @@ func TestCustomers(t *testing.T) {
 
 	t.Run("Create without address", func(t *testing.T) {
 		customer, err := customers.Create(
+            1,
 			"Mark",
 			"mark@email.com",
 			"459.149.594-10",
@@ -62,6 +68,7 @@ func TestCustomers(t *testing.T) {
 
 	t.Run("List", func(t *testing.T) {
 		if _, err := customers.Create(
+            1,
 			"Jane Doe",
 			"janedoe@email.com",
 			"412.461.592-21",

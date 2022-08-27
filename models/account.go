@@ -25,6 +25,8 @@ type Account struct {
 	Type         AccountType
 	ParentID     *uint
 	Parent       *Account
+	CompanyID    uint
+	Company      *Company
 	Children     []*Account     `gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
 	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
 }

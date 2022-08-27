@@ -12,6 +12,8 @@ type Purchase struct {
 	Price            float64
 	Paid             bool
 	PaymentDate      time.Time
+	CompanyID        uint
+	Company          *Company
 	PayableAccountID *uint
 	PayableAccount   *Account `gorm:"foreignKey:PayableAccountID;constraint:OnDelete:SET NULL;"`
 	PaymentAccountID *uint
