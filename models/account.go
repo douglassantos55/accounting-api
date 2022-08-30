@@ -21,9 +21,9 @@ const (
 
 type Account struct {
 	database.Model
-	Name         string
-	Type         AccountType
-	ParentID     *uint
+	Name         string      `json:"name" binding:"required"`
+	Type         AccountType `json:"type" binding:"required"`
+	ParentID     *uint       `json:"parent_id"`
 	Parent       *Account
 	CompanyID    uint
 	Company      *Company
