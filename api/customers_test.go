@@ -193,4 +193,190 @@ func TestCustomersEndpoint(t *testing.T) {
 			}
 		}
 	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/customers/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var customer *models.Customer
+		if err := json.Unmarshal(w.Body.Bytes(), &customer); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if customer.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, customer.ID)
+		}
+	})
+
+	t.Run("Get non existing", func(t *testing.T) {
+		req := Get(t, "/customers/121")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get invalid", func(t *testing.T) {
+		req := Get(t, "/customers/aoeu")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/customers/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		req := Put(t, "/customers/1", map[string]interface{}{
+			"name":  "Jane Doe 2",
+			"email": "janedoe2@email.com",
+			"phone": "222222222",
+			"cpf":   "444.000.666-22",
+			"address": map[string]interface{}{
+				"street":       "Street",
+				"number":       "211",
+				"city":         "Sao Paulo",
+				"state":        "SP",
+				"neighborhood": "Sao Paulo",
+				"postcode":     "333333",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var customer *models.Customer
+		if err := json.Unmarshal(w.Body.Bytes(), &customer); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if customer.Name != "Jane Doe 2" {
+			t.Errorf("Expected name %v, got %v", "Jane Doe 2", customer.Name)
+		}
+		if customer.Email != "janedoe2@email.com" {
+			t.Errorf("Expected email %v, got %v", "janedoe2@email.com", customer.Email)
+		}
+	})
+
+	t.Run("Update validation", func(t *testing.T) {
+		req := Put(t, "/customers/2", map[string]interface{}{
+			"name":  "",
+			"email": "janedoe",
+			"phone": "222222222",
+			"cpf":   "444.000.666-22",
+			"address": map[string]interface{}{
+				"street":       "",
+				"number":       "",
+				"city":         "",
+				"state":        "",
+				"neighborhood": "",
+				"postcode":     "",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("Update from another company", func(t *testing.T) {
+		req := Put(t, "/customers/3", map[string]interface{}{
+			"name":  "Jane Doe 2",
+			"email": "janedoe2@email.com",
+			"phone": "222222222",
+			"cpf":   "444.000.666-22",
+			"address": map[string]interface{}{
+				"street":       "Street",
+				"number":       "211",
+				"city":         "Sao Paulo",
+				"state":        "SP",
+				"neighborhood": "Sao Paulo",
+				"postcode":     "333333",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		req := Delete(t, "/customers/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		var customer *models.Customer
+		if db.First(&customer, 1).Error == nil {
+			t.Error("Should delete customer")
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/customers/1251")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/customers/stnh")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/customers/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
