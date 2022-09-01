@@ -1,9 +1,11 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"gorm.io/gorm"
+)
 
 type Product struct {
-	database.Model
+	gorm.Model
 	Name                string
 	Price               float64
 	Purchasable         bool
@@ -29,7 +31,7 @@ func (p Product) Inventory() uint {
 }
 
 type StockEntry struct {
-	database.Model
+	gorm.Model
 	Qty       uint
 	Price     float64
 	ProductID uint
@@ -37,7 +39,7 @@ type StockEntry struct {
 }
 
 type Vendor struct {
-	database.Model
+	gorm.Model
 	Name      string
 	Cnpj      string
 	CompanyID uint

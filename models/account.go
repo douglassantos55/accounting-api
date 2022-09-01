@@ -1,6 +1,8 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"gorm.io/gorm"
+)
 
 type AccountType uint
 type TransactionType uint
@@ -20,10 +22,10 @@ const (
 )
 
 type Account struct {
-	database.Model
-	Name         string      `json:"name" binding:"required"`
-	Type         AccountType `json:"type" binding:"required"`
-	ParentID     *uint       `json:"parent_id"`
+	gorm.Model
+	Name         string      `binding:"required"`
+	Type         AccountType `binding:"required"`
+	ParentID     *uint       `json:"parent_id" binding:"omitempty"`
 	Parent       *Account
 	CompanyID    uint
 	Company      *Company

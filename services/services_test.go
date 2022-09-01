@@ -15,8 +15,8 @@ func TestServices(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&models.Service{})
-	db.Migrate(&models.Account{})
+	db.AutoMigrate(&models.Service{})
+	db.AutoMigrate(&models.Account{})
 
 	db.Create(&models.Company{
 		Name: "Testing Company",

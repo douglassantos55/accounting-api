@@ -2,49 +2,47 @@ package database
 
 import (
 	"os"
-	"time"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-type Model struct {
-	ID        uint
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
-}
+var connection *gorm.DB
 
-type QueryResult interface {
-	Get(dest interface{}) error
-	First(dest interface{}) error
-	With(relations ...string) QueryResult
-	Where(condition string, value interface{}) QueryResult
-	WhereHas(relation, condition string, value interface{}) QueryResult
-}
-
-type Repository interface {
-	Find(model interface{}) QueryResult
-	Create(model interface{}) error
-	Update(model interface{}) error
-	Delete(model interface{}, id uint) error
-	Migrate(model interface{}) error
-	Transaction(callback func() error) error
-	CleanUp()
-}
-
-var connection Repository
-
-func GetConnection() (Repository, error) {
+func GetConnection() (*gorm.DB, error) {
 	if connection == nil {
 		dns := os.Getenv("DB_CONNECTION")
 		driver := os.Getenv("DB_DRIVER")
 
-		repository, err := CreateGormRepository(driver, dns)
+		db, err := gorm.Open(getDialector(driver, dns), &gorm.Config{
+			FullSaveAssociations: true,
+		})
 
 		if err != nil {
 			return nil, err
 		}
 
-		connection = repository
+		if driver == "sqlite" {
+			db.Exec("PRAGMA foreign_keys = ON")
+		}
+
+		connection = db
 	}
 
 	return connection, nil
+}
+
+func getDialector(driver string, dns string) gorm.Dialector {
+	switch driver {
+	case "sqlite":
+		return sqlite.Open(dns)
+	default:
+		return nil
+	}
+}
+
+func FromCompany(companyID uint) func(d *gorm.DB) *gorm.DB {
+	return func(d *gorm.DB) *gorm.DB {
+		return d.Where("company_id", companyID)
+	}
 }

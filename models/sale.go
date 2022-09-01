@@ -1,18 +1,20 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"gorm.io/gorm"
+)
 
 type Sale struct {
-	database.Model
+	gorm.Model
 	Paid              bool
 	Items             []*Item `gorm:"constraint:OnDelete:CASCADE;"`
 	Customer          *Customer
-	Company          *Company
+	Company           *Company
 	PaymentAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	ReceivableAccount *Account `gorm:"constraint:OnDelete:SET NULL;"`
 
 	CustomerID          uint
-	CompanyID          uint
+	CompanyID           uint
 	PaymentAccountID    *uint
 	ReceivableAccountID *uint
 }
@@ -26,7 +28,7 @@ func (s Sale) Total() float64 {
 }
 
 type Item struct {
-	database.Model
+	gorm.Model
 	Qty       uint
 	Price     float64
 	ProductID uint

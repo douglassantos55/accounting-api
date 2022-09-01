@@ -1,31 +1,35 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
-	"example.com/accounting/accounts"
 	"example.com/accounting/database"
 	"example.com/accounting/models"
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterAccountsEndpoints() {
-	router := GetRouter()
+func RegisterAccountsEndpoints(router *gin.Engine) {
 	accounts := router.Group("/accounts")
 
-	accounts.GET("", list)
-	accounts.GET("/:id", view)
-	accounts.POST("", create)
-	accounts.PUT("/:id", update)
-	accounts.DELETE("/:id", remove)
+	accounts.GET("", listAccounts)
+	accounts.GET("/:id", viewAccount)
+	accounts.POST("", createAccount)
+	accounts.PUT("/:id", updateAccount)
+	accounts.DELETE("/:id", deleteAccount)
 }
 
-func list(context *gin.Context) {
-	var items []models.Account
+func listAccounts(context *gin.Context) {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
 
-	if err := accounts.List().Get(&items); err != nil {
+	var items []*models.Account
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -33,7 +37,7 @@ func list(context *gin.Context) {
 	context.JSON(http.StatusOK, items)
 }
 
-func view(context *gin.Context) {
+func viewAccount(context *gin.Context) {
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
 
 	if err != nil {
@@ -41,8 +45,16 @@ func view(context *gin.Context) {
 		return
 	}
 
-	var account models.Account
-	if err := accounts.Find(uint(id)).First(&account); err != nil {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var account *models.Account
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&account, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -50,7 +62,7 @@ func view(context *gin.Context) {
 	context.JSON(http.StatusOK, account)
 }
 
-func create(context *gin.Context) {
+func createAccount(context *gin.Context) {
 	var account *models.Account
 	if err := context.ShouldBindJSON(&account); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -59,16 +71,21 @@ func create(context *gin.Context) {
 
 	account.CompanyID = context.Value("CompanyID").(uint)
 
-	db, _ := database.GetConnection()
-	if err := db.Create(&account); err != nil {
+	db, err := database.GetConnection()
+	if err != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
 
-	context.JSON(200, account)
+	if result := db.Create(&account); result.Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, account)
 }
 
-func update(context *gin.Context) {
+func updateAccount(context *gin.Context) {
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
 
 	if err != nil {
@@ -76,8 +93,16 @@ func update(context *gin.Context) {
 		return
 	}
 
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
 	var account *models.Account
-	if err := accounts.Find(uint(id)).First(&account); err != nil {
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&account, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -87,7 +112,7 @@ func update(context *gin.Context) {
 		return
 	}
 
-	if err := accounts.Update(account); err != nil {
+	if result := db.Save(account); result.Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -95,7 +120,7 @@ func update(context *gin.Context) {
 	context.JSON(http.StatusOK, account)
 }
 
-func remove(context *gin.Context) {
+func deleteAccount(context *gin.Context) {
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
 
 	if err != nil {
@@ -103,8 +128,21 @@ func remove(context *gin.Context) {
 		return
 	}
 
-	if err := accounts.Delete(uint(id)); err != nil {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&models.Account{}, id).Error != nil {
 		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if result := db.Delete(&models.Account{}, id); result.Error != nil {
+		context.Status(http.StatusInternalServerError)
 		return
 	}
 

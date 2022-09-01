@@ -3,11 +3,11 @@ package models
 import (
 	"time"
 
-	"example.com/accounting/database"
+	"gorm.io/gorm"
 )
 
 type Purchase struct {
-	database.Model
+	gorm.Model
 	Qty              uint
 	Price            float64
 	Paid             bool

@@ -1,12 +1,14 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"gorm.io/gorm"
+)
 
 type Customer struct {
-	database.Model
-	Name      string
-	Email     string
-	Cpf       string
+	gorm.Model
+	Name      string `binding:"required"`
+	Email     string `binding:"omitempty,email"`
+	Cpf       string `binding:"required"`
 	Phone     string
 	Address   *Address `gorm:"embedded"`
 	CompanyID uint

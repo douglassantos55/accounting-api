@@ -1,6 +1,8 @@
 package models
 
-import "example.com/accounting/database"
+import (
+	"gorm.io/gorm"
+)
 
 type StockOption int
 
@@ -10,7 +12,7 @@ const (
 )
 
 type Company struct {
-	database.Model
+	gorm.Model
 	Name  string
 	Stock StockOption
 }

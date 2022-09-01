@@ -2,10 +2,11 @@ package models
 
 import (
 	"example.com/accounting/database"
+	"gorm.io/gorm"
 )
 
 type Entry struct {
-	database.Model
+	gorm.Model
 	Description  string
 	PurchaseID   *uint
 	Purchase     *Purchase
@@ -35,7 +36,7 @@ func (e Entry) IsBalanced() bool {
 }
 
 type Transaction struct {
-	database.Model
+	gorm.Model
 	Value     float64
 	AccountID uint
 	Account   *Account

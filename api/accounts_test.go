@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"example.com/accounting/accounts"
 	"example.com/accounting/api"
 	"example.com/accounting/database"
 	"example.com/accounting/models"
@@ -49,11 +48,11 @@ func TestAccountsEndpoint(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.Migrate(&models.Account{})
-	db.Migrate(&models.Company{})
+	db.AutoMigrate(&models.Account{})
+	db.AutoMigrate(&models.Company{})
 
-	if err := db.Create(&models.Company{Name: "Testing Company"}); err != nil {
-		t.Error(err)
+	if result := db.Create(&models.Company{Name: "Testing Company"}); result.Error != nil {
+		t.Error(result.Error)
 	}
 
 	router := api.GetRouter()
@@ -145,7 +144,7 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Put(t, "/accounts/2", map[string]interface{}{
-			"name":      "Suppliers Payable",
+			"name":     "Suppliers Payable",
 			"parent_id": nil,
 		})
 		router.ServeHTTP(w, req)
@@ -155,7 +154,9 @@ func TestAccountsEndpoint(t *testing.T) {
 		}
 
 		var account *models.Account
-		accounts.Find(2).First(&account)
+		if result := db.First(&account, 2); result.Error != nil {
+			t.Error(result.Error)
+		}
 
 		if account.Name != "Suppliers Payable" {
 			t.Errorf("Expected name %v, got %v", "Suppliers Payable", account.Name)
