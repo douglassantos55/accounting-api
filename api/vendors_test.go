@@ -123,5 +123,78 @@ func TestVendors(t *testing.T) {
 		}
 	})
 
+	t.Run("List", func(t *testing.T) {
+		db, _ := database.GetConnection()
+
+		// Create one for another company
+		db.Create(&models.Company{Name: "Other Company"})
+		db.Create(&models.Vendor{Name: "Vendor 3", CompanyID: 2})
+
+		req := Get(t, "/vendors")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var vendors []*models.Vendor
+		if err := json.Unmarshal(w.Body.Bytes(), &vendors); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(vendors) != 2 {
+			t.Errorf("Expected %v vendors, got %v", 2, len(vendors))
+		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/vendors/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		var vendor *models.Vendor
+		if err := json.Unmarshal(w.Body.Bytes(), &vendor); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if vendor == nil {
+			t.Error("Should return vendor")
+		}
+
+		if vendor.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, vendor.ID)
+		}
+	})
+
+	t.Run("Get non existent", func(t *testing.T) {
+		req := Get(t, "/vendors/1312")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+
+		req = Get(t, "/vendors/aosetnh")
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/vendors/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
 	})
 }
