@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 
@@ -9,8 +8,6 @@ import (
 	"example.com/accounting/models"
 	"github.com/gin-gonic/gin"
 )
-
-var ErrInvalidCNPJ = errors.New("CPNJ invalido")
 
 func RegisterVendorEndpoints(router *gin.Engine) {
 	group := router.Group("/vendors")
@@ -31,9 +28,9 @@ func createVendor(context *gin.Context) {
 		return
 	}
 
-	if !IsCNPJ(vendor.Cnpj) {
+	if err := IsCNPJ(vendor.Cnpj); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrInvalidCNPJ.Error(),
+			"error": err.Error(),
 		})
 		return
 	}
@@ -124,9 +121,9 @@ func updateVendor(context *gin.Context) {
 		return
 	}
 
-	if !IsCNPJ(vendor.Cnpj) {
+	if err := IsCNPJ(vendor.Cnpj); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrInvalidCNPJ.Error(),
+			"error": err.Error(),
 		})
 		return
 	}

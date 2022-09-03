@@ -26,8 +26,10 @@ func createCustomer(context *gin.Context) {
 		return
 	}
 
-	if !IsCPF(customer.Cpf) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "CPF invalido"})
+	if err := IsCPF(customer.Cpf); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 
@@ -120,8 +122,10 @@ func updateCustomer(context *gin.Context) {
 		return
 	}
 
-	if !IsCPF(customer.Cpf) {
-		context.JSON(http.StatusBadRequest, gin.H{"error": "CPF invalido"})
+	if err := IsCPF(customer.Cpf); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
 		return
 	}
 

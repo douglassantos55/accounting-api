@@ -179,6 +179,15 @@ func TestCustomersEndpoint(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrInvalidCPF.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrInvalidCPF.Error(), response["error"])
+		}
+
 		req = Put(t, "/customers/2", map[string]interface{}{
 			"name":  "Jane Doe",
 			"email": "janedoe@email.com",

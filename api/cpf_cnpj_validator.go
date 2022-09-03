@@ -2,10 +2,14 @@ package api
 
 import (
 	"bytes"
+	"errors"
 	"regexp"
 	"strconv"
 	"unicode"
 )
+
+var ErrInvalidCPF = errors.New("CPF invalido")
+var ErrInvalidCNPJ = errors.New("CNPJ invalido")
 
 // Regexp pattern for CPF and CNPJ.
 var (
@@ -14,25 +18,32 @@ var (
 )
 
 // IsCPF verifies if the given string is a valid CPF document.
-func IsCPF(doc string) bool {
+func IsCPF(doc string) error {
 
 	const (
 		size = 9
 		pos  = 10
 	)
 
-	return isCPFOrCNPJ(doc, CPFRegexp, size, pos)
+	if !isCPFOrCNPJ(doc, CPFRegexp, size, pos) {
+		return ErrInvalidCPF
+	}
+
+	return nil
 }
 
 // IsCNPJ verifies if the given string is a valid CNPJ document.
-func IsCNPJ(doc string) bool {
-
+func IsCNPJ(doc string) error {
 	const (
 		size = 12
 		pos  = 5
 	)
 
-	return isCPFOrCNPJ(doc, CNPJRegexp, size, pos)
+	if !isCPFOrCNPJ(doc, CNPJRegexp, size, pos) {
+		return ErrInvalidCNPJ
+	}
+
+	return nil
 }
 
 // isCPFOrCNPJ generates the digits for a given CPF or CNPJ and compares it with the original digits.
