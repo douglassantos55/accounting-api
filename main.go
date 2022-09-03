@@ -16,7 +16,7 @@ func NewRouter() *gin.Engine {
 	router.POST("/accounts", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"id":          1,
-            "name": c.PostForm("name"),
+			"name":        c.PostForm("name"),
 			"placeholder": true,
 		})
 	})

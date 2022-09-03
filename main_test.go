@@ -46,8 +46,8 @@ func TestCreateAccount(t *testing.T) {
 		t.Errorf("Expected JSON response, got %v", contentType)
 	}
 
-    var responseJSON gin.H
-    json.Unmarshal(w.Body.Bytes(), &responseJSON)
+	var responseJSON gin.H
+	json.Unmarshal(w.Body.Bytes(), &responseJSON)
 
 	if responseJSON["name"] != "Foo" {
 		t.Errorf("Expected Bar, got %v", responseJSON)
