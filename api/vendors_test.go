@@ -197,4 +197,88 @@ func TestVendors(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		req := Put(t, "/vendors/1", map[string]interface{}{
+			"name": "Updated vendor",
+			"cnpj": "80.529.809/0001-44",
+			"address": map[string]interface{}{
+				"street": "Another street",
+				"city":   "San Francisco",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var vendor *models.Vendor
+		if err := json.Unmarshal(w.Body.Bytes(), &vendor); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if vendor.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, vendor.ID)
+		}
+
+		if vendor.Name != "Updated vendor" {
+			t.Errorf("Expected name %v, got %v", "Updated vendor", vendor.Name)
+		}
+
+		if vendor.Cnpj != "80.529.809/0001-44" {
+			t.Errorf("Expected CNPJ %v, got %v", "80.529.809/0001-44", vendor.Cnpj)
+		}
+
+		if vendor.Address.Street != "Another street" {
+			t.Errorf("Expected street %v, got %v", "Another street", vendor.Address.Street)
+		}
+
+		if vendor.Address.City != "San Francisco" {
+			t.Errorf("Expected city %v, got %v", "San Francisco", vendor.Address.City)
+		}
+	})
+
+	t.Run("Update validate CNPJ", func(t *testing.T) {
+		req := Put(t, "/vendors/2", map[string]interface{}{
+			"name": "Updated vendor",
+			"cnpj": "80.529.809/0001-04",
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Could not parse error", err)
+		}
+
+		if response["error"] != api.ErrInvalidCNPJ.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrInvalidCNPJ, response["error"])
+		}
+	})
+
+	t.Run("Update from another company", func(t *testing.T) {
+		req := Put(t, "/vendors/3", map[string]interface{}{
+			"name": "Updated vendor",
+			"cnpj": "80.529.809/0001-44",
+			"address": map[string]interface{}{
+				"street": "Another street",
+				"city":   "San Francisco",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
