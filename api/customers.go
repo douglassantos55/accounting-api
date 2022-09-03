@@ -26,6 +26,11 @@ func createCustomer(context *gin.Context) {
 		return
 	}
 
+	if !IsCPF(customer.Cpf) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "CPF invalido"})
+		return
+	}
+
 	// Ignore everything if there's no postcode
 	if customer.Address.Postcode == "" {
 		customer.Address = nil
@@ -48,7 +53,6 @@ func createCustomer(context *gin.Context) {
 }
 
 func listCustomers(context *gin.Context) {
-
 	db, err := database.GetConnection()
 	if err != nil {
 		context.Status(http.StatusInternalServerError)
@@ -113,6 +117,11 @@ func updateCustomer(context *gin.Context) {
 
 	if err := context.ShouldBindJSON(&customer); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	if !IsCPF(customer.Cpf) {
+		context.JSON(http.StatusBadRequest, gin.H{"error": "CPF invalido"})
 		return
 	}
 

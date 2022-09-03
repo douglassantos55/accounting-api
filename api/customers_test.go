@@ -31,7 +31,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "John Doe",
 			"email": "johndoe@email.com",
 			"phone": "",
-			"cpf":   "151.515.423-22",
+			"cpf":   "297.164.260-70",
 			"address": map[string]interface{}{
 				"street":       "Street",
 				"number":       "211",
@@ -104,7 +104,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "Jane Doe",
 			"email": "janedoe@email.com",
 			"phone": "",
-			"cpf":   "515.151.222-66",
+			"cpf":   "007.806.010-92",
 			"address": map[string]interface{}{
 				"street":       "",
 				"number":       "",
@@ -137,7 +137,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "Jane Doe",
 			"email": "janedoe",
 			"phone": "",
-			"cpf":   "515.151.222-66",
+			"cpf":   "249.741.710-54",
 			"address": map[string]interface{}{
 				"street":       "street",
 				"number":       "533",
@@ -153,6 +153,76 @@ func TestCustomersEndpoint(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("Valid CPF", func(t *testing.T) {
+		req := Post(t, "/customers", map[string]interface{}{
+			"name":  "Jane Doe",
+			"email": "janedoe@email.com",
+			"phone": "",
+			"cpf":   "234.214.230-22",
+			"address": map[string]interface{}{
+				"street":       "street",
+				"number":       "533",
+				"city":         "New York",
+				"state":        "NY",
+				"neighborhood": "Brooklyn",
+				"postcode":     "75397",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		req = Put(t, "/customers/2", map[string]interface{}{
+			"name":  "Jane Doe",
+			"email": "janedoe@email.com",
+			"phone": "",
+			"cpf":   "234.214.230-22",
+			"address": map[string]interface{}{
+				"street":       "street",
+				"number":       "533",
+				"city":         "New York",
+				"state":        "NY",
+				"neighborhood": "Brooklyn",
+				"postcode":     "75397",
+			},
+		})
+
+		w = httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("Unique email", func(t *testing.T) {
+		req := Post(t, "/customers", map[string]interface{}{
+			"name":  "John Doe",
+			"email": "johndoe@email.com",
+			"phone": "",
+			"cpf":   "736.151.790-05",
+			"address": map[string]interface{}{
+				"street":       "Street",
+				"number":       "211",
+				"city":         "New York",
+				"state":        "NY",
+				"neighborhood": "Brooklyn",
+				"postcode":     "2222222",
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusInternalServerError {
+			t.Errorf("Expected status %v, got %v", http.StatusInternalServerError, w.Code)
 		}
 	})
 
@@ -252,7 +322,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "Jane Doe 2",
 			"email": "janedoe2@email.com",
 			"phone": "222222222",
-			"cpf":   "444.000.666-22",
+			"cpf":   "774.293.940-19",
 			"address": map[string]interface{}{
 				"street":       "Street",
 				"number":       "211",
@@ -288,7 +358,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "",
 			"email": "janedoe",
 			"phone": "222222222",
-			"cpf":   "444.000.666-22",
+			"cpf":   "603.411.650-34",
 			"address": map[string]interface{}{
 				"street":       "",
 				"number":       "",
@@ -312,7 +382,7 @@ func TestCustomersEndpoint(t *testing.T) {
 			"name":  "Jane Doe 2",
 			"email": "janedoe2@email.com",
 			"phone": "222222222",
-			"cpf":   "444.000.666-22",
+			"cpf":   "838.654.570-45",
 			"address": map[string]interface{}{
 				"street":       "Street",
 				"number":       "211",

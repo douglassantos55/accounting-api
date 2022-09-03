@@ -7,7 +7,7 @@ import (
 type Customer struct {
 	gorm.Model
 	Name      string `binding:"required"`
-	Email     string `binding:"omitempty,email"`
+	Email     string `gorm:"uniqueIndex" binding:"omitempty,email"`
 	Cpf       string `binding:"required"`
 	Phone     string
 	Address   *Address `gorm:"embedded"`
