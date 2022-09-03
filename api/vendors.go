@@ -19,6 +19,7 @@ func RegisterVendorEndpoints(router *gin.Engine) {
 	group.GET("", listVendors)
 	group.GET("/:id", viewVendor)
 	group.PUT("/:id", updateVendor)
+	group.DELETE("/:id", deleteVendor)
 }
 
 func createVendor(context *gin.Context) {
@@ -136,4 +137,32 @@ func updateVendor(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, vendor)
+}
+
+func deleteVendor(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&models.Vendor{}, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Delete(&models.Vendor{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }
