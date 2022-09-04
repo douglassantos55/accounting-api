@@ -22,6 +22,7 @@ func RegisterProductEndpoints(router *gin.Engine) {
 	group.GET("", listProducts)
 	group.GET("/:id", viewProduct)
 	group.PUT("/:id", updateProduct)
+	group.DELETE("/:id", deleteProduct)
 }
 
 func createProduct(context *gin.Context) {
@@ -153,4 +154,33 @@ func updateProduct(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, product)
+}
+
+func deleteProduct(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var product models.Product
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&product, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Scopes(database.FromCompany(companyID)).Delete(&models.Product{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }

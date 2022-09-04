@@ -444,4 +444,53 @@ func TestProducts(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		req := Delete(t, "/products/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		db, _ := database.GetConnection()
+		if db.First(&models.Product{}, 1).Error == nil {
+			t.Error("Should have deleted product")
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/products/210")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/products/aosnetuh")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/products/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
