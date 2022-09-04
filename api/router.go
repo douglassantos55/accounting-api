@@ -25,4 +25,5 @@ func registerRoutes(router *gin.Engine) {
 	RegisterCustomerEndpoints(router)
 	RegisterVendorEndpoints(router)
 	RegisterProductEndpoints(router)
+	RegisterPurchaseEndpoints(router)
 }
