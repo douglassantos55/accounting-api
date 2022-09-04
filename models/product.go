@@ -13,7 +13,7 @@ type Product struct {
 	RevenueAccount      *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	CostOfSaleAccountID *uint    `json:"cost_of_sale_account_id"`
 	CostOfSaleAccount   *Account `gorm:"constraint:OnDelete:SET NULL;"`
-	InventoryAccountID  uint     `json:"inventory_account_id"`
+	InventoryAccountID  uint     `json:"inventory_account_id" binding:"required"`
 	InventoryAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	VendorID            *uint
 	Vendor              *Vendor       `gorm:"constraint:OnDelete:SET NULL;"`

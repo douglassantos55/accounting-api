@@ -139,14 +139,14 @@ func TestProducts(t *testing.T) {
 			"purchasable":             true,
 			"revenue_account_id":      1,
 			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    nil,
+			"inventory_account_id":    "",
 		})
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("Expected status %v, got %v", http.StatusInternalServerError, w.Code)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 
 		req = Post(t, "/products", map[string]interface{}{
@@ -160,8 +160,8 @@ func TestProducts(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("Expected status %v, got %v", http.StatusInternalServerError, w.Code)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 	})
 
@@ -281,6 +281,167 @@ func TestProducts(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Errorf("expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update non purchasable", func(t *testing.T) {
+		req := Put(t, "/products/1", map[string]interface{}{
+			"name":                    "Edited product",
+			"price":                   63.64,
+			"purchasable":             false,
+			"revenue_account_id":      nil,
+			"cost_of_sale_account_id": nil,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var product *models.Product
+		if err := json.Unmarshal(w.Body.Bytes(), &product); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if product.Name != "Edited product" {
+			t.Errorf("Expected name %v, got %v", "Edited product", product.Name)
+		}
+
+		if product.Price != 63.64 {
+			t.Errorf("Expected price %v, got %v", 63.64, product.Price)
+		}
+
+		if product.Purchasable {
+			t.Error("Should not be purchasable")
+		}
+	})
+
+	t.Run("Update required revenue account", func(t *testing.T) {
+		req := Put(t, "/products/2", map[string]interface{}{
+			"name":                    "Edited product 2",
+			"price":                   63.64,
+			"purchasable":             true,
+			"revenue_account_id":      nil,
+			"cost_of_sale_account_id": 2,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrRevenueAccountMissing.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrRevenueAccountMissing.Error(), response["error"])
+		}
+	})
+
+	t.Run("Update required cost of sale account", func(t *testing.T) {
+		req := Put(t, "/products/2", map[string]interface{}{
+			"name":                    "Edited product 2",
+			"price":                   63.64,
+			"purchasable":             true,
+			"revenue_account_id":      1,
+			"cost_of_sale_account_id": nil,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrCostOfSaleAccountMissing.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrCostOfSaleAccountMissing.Error(), response["error"])
+		}
+	})
+
+	t.Run("Update required inventory account", func(t *testing.T) {
+		req := Put(t, "/products/2", map[string]interface{}{
+			"name":                    "Edited product 2",
+			"price":                   63.64,
+			"purchasable":             true,
+			"revenue_account_id":      1,
+			"cost_of_sale_account_id": 2,
+			"inventory_account_id":    "",
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("Update non existent", func(t *testing.T) {
+		req := Put(t, "/products/51515", map[string]interface{}{
+			"name":                    "Edited product",
+			"price":                   63.64,
+			"purchasable":             false,
+			"revenue_account_id":      nil,
+			"cost_of_sale_account_id": nil,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update invalid", func(t *testing.T) {
+		req := Put(t, "/products/aoeu", map[string]interface{}{
+			"name":                    "Edited product",
+			"price":                   63.64,
+			"purchasable":             false,
+			"revenue_account_id":      nil,
+			"cost_of_sale_account_id": nil,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update from another company", func(t *testing.T) {
+		req := Put(t, "/products/3", map[string]interface{}{
+			"name":                    "Edited product",
+			"price":                   63.64,
+			"purchasable":             false,
+			"revenue_account_id":      nil,
+			"cost_of_sale_account_id": nil,
+			"inventory_account_id":    3,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
 }
