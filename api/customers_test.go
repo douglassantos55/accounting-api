@@ -20,6 +20,8 @@ func TestCustomersEndpoint(t *testing.T) {
 	db.AutoMigrate(&models.Company{})
 	db.AutoMigrate(&models.Customer{})
 
+	t.Cleanup(database.Cleanup)
+
 	if result := db.Create(&models.Company{Name: "Testing Company"}); result.Error != nil {
 		t.Error(result.Error)
 	}

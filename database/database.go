@@ -46,3 +46,12 @@ func FromCompany(companyID uint) func(d *gorm.DB) *gorm.DB {
 		return d.Where("company_id", companyID)
 	}
 }
+
+func Cleanup() {
+	migrator := connection.Migrator()
+	tables, _ := migrator.GetTables()
+
+	for _, table := range tables {
+		migrator.DropTable(table)
+	}
+}

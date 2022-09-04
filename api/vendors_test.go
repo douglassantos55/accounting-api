@@ -20,6 +20,8 @@ func TestVendors(t *testing.T) {
 	db.AutoMigrate(&models.Vendor{})
 	db.AutoMigrate(&models.Company{})
 
+	t.Cleanup(database.Cleanup)
+
 	if result := db.Create(&models.Company{Name: "Testing Company"}); result.Error != nil {
 		t.Error(result.Error)
 	}

@@ -21,6 +21,8 @@ func TestProducts(t *testing.T) {
 	db.AutoMigrate(&models.Product{})
 	db.AutoMigrate(&models.Company{})
 
+	t.Cleanup(database.Cleanup)
+
 	db.Create(&models.Company{Name: "Testing Company"})
 
 	db.Create(&models.Account{
@@ -491,6 +493,42 @@ func TestProducts(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Create with vendor", func(t *testing.T) {
+		db, _ := database.GetConnection()
+
+		db.Create(&models.Vendor{
+			CompanyID: 1,
+			Name:      "Vendor",
+			Cnpj:      "70.463.497/0001-60",
+		})
+
+		req := Post(t, "/products", map[string]interface{}{
+			"name":                    "Product 4",
+			"price":                   253.24,
+			"purchasable":             true,
+			"revenue_account_id":      1,
+			"cost_of_sale_account_id": 2,
+			"inventory_account_id":    3,
+			"vendor_id":               1,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var prod *models.Product
+		if err := json.Unmarshal(w.Body.Bytes(), &prod); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if *prod.VendorID != 1 {
+			t.Errorf("Expected vendor %v, got %v", 1, *prod.VendorID)
 		}
 	})
 }

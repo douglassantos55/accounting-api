@@ -51,6 +51,8 @@ func TestAccountsEndpoint(t *testing.T) {
 	db.AutoMigrate(&models.Account{})
 	db.AutoMigrate(&models.Company{})
 
+	t.Cleanup(database.Cleanup)
+
 	if result := db.Create(&models.Company{Name: "Testing Company"}); result.Error != nil {
 		t.Error(result.Error)
 	}
