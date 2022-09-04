@@ -199,4 +199,88 @@ func TestProducts(t *testing.T) {
 			t.Errorf("Should not have revenue account, got %v", prod.CostOfSaleAccountID)
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		// create another company
+		db.Create(&models.Company{Name: "Other Company"})
+
+		// this product should not be retrieved
+		db.Create(&models.Product{
+			Name:               "Product 3",
+			Price:              153.54,
+			Purchasable:        false,
+			InventoryAccountID: 3,
+		})
+
+		req := Get(t, "/products")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var products []*models.Product
+		if err := json.Unmarshal(w.Body.Bytes(), &products); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(products) != 2 {
+			t.Errorf("Expected %v products, got %v", 2, len(products))
+		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/products/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var product *models.Product
+		if err := json.Unmarshal(w.Body.Bytes(), &product); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if product.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, product.ID)
+		}
+	})
+
+	t.Run("Get non existent", func(t *testing.T) {
+		req := Get(t, "/products/15151")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get invalid", func(t *testing.T) {
+		req := Get(t, "/products/astnoheu")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/products/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }

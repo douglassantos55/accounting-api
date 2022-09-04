@@ -144,7 +144,7 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Put(t, "/accounts/2", map[string]interface{}{
-			"name":     "Suppliers Payable",
+			"name":      "Suppliers Payable",
 			"parent_id": nil,
 		})
 		router.ServeHTTP(w, req)

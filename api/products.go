@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"example.com/accounting/database"
 	"example.com/accounting/models"
@@ -18,6 +19,8 @@ func RegisterProductEndpoints(router *gin.Engine) {
 	group := router.Group("/products")
 
 	group.POST("", createProduct)
+	group.GET("", listProducts)
+	group.GET("/:id", viewProduct)
 }
 
 func createProduct(context *gin.Context) {
@@ -64,4 +67,46 @@ func validateAccounts(product *models.Product) error {
 	}
 
 	return nil
+}
+
+func listProducts(context *gin.Context) {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var products []*models.Product
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).Find(&products).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, products)
+}
+
+func viewProduct(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var product *models.Product
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&product, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	context.JSON(http.StatusOK, product)
 }
