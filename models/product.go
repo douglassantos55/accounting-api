@@ -6,14 +6,14 @@ import (
 
 type Product struct {
 	gorm.Model
-	Name                string
-	Price               float64
+	Name                string  `binding:"required"`
+	Price               float64 `binding:"required"`
 	Purchasable         bool
-	RevenueAccountID    *uint
+	RevenueAccountID    *uint    `json:"revenue_account_id"`
 	RevenueAccount      *Account `gorm:"constraint:OnDelete:SET NULL;"`
-	CostOfSaleAccountID *uint
+	CostOfSaleAccountID *uint    `json:"cost_of_sale_account_id"`
 	CostOfSaleAccount   *Account `gorm:"constraint:OnDelete:SET NULL;"`
-	InventoryAccountID  uint
+	InventoryAccountID  uint     `json:"inventory_account_id"`
 	InventoryAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	VendorID            *uint
 	Vendor              *Vendor       `gorm:"constraint:OnDelete:SET NULL;"`
