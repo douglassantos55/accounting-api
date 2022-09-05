@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"example.com/accounting/database"
 	"example.com/accounting/events"
@@ -20,6 +21,8 @@ func RegisterPurchaseEndpoints(router *gin.Engine) {
 	group := router.Group("/purchases")
 
 	group.POST("", createPurchase)
+	group.GET("", listPurchases)
+	group.GET("/:id", viewPurchase)
 }
 
 func CreateStockEntry(data interface{}) {
@@ -105,6 +108,48 @@ func createPurchase(context *gin.Context) {
 	}
 
 	events.Dispatch(events.PurchaseCreated, purchase)
+
+	context.JSON(http.StatusOK, purchase)
+}
+
+func listPurchases(context *gin.Context) {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var purchases []models.Purchase
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).Find(&purchases).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, purchases)
+}
+
+func viewPurchase(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var purchase models.Purchase
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&purchase, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
 
 	context.JSON(http.StatusOK, purchase)
 }

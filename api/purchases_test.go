@@ -255,4 +255,87 @@ func TestPurchase(t *testing.T) {
 			t.Errorf("Expected balance %v, got %v", 10*155.75, inv.Balance())
 		}
 	})
+
+	t.Run("List", func(t *testing.T) {
+		db.Create(&models.Company{Name: "Other company"})
+
+		// This should not be retrieved
+		db.Create(&models.Purchase{
+			Qty:       1,
+			Price:     1,
+			CompanyID: 2,
+			ProductID: 1,
+		})
+
+		req := Get(t, "/purchases")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchases []models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchases); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(purchases) != 2 {
+			t.Errorf("Expected %v purchases, got %v", 2, len(purchases))
+		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/purchases/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchase models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchase); err != nil {
+			t.Error("Failed to parse JSON", err)
+		}
+
+		if purchase.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, purchase.ID)
+		}
+	})
+
+	t.Run("Get non existent", func(t *testing.T) {
+		req := Get(t, "/purchases/132")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get invalid", func(t *testing.T) {
+		req := Get(t, "/purchases/asontehu")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/purchases/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
