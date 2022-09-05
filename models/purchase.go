@@ -8,8 +8,8 @@ import (
 
 type Purchase struct {
 	gorm.Model
-	Qty              uint
-	Price            float64
+	Qty              uint    `binding:"required"`
+	Price            float64 `binding:"required"`
 	Paid             bool
 	PaymentDate      time.Time `json:"payment_date"`
 	CompanyID        uint
@@ -18,7 +18,7 @@ type Purchase struct {
 	PayableAccount   *Account `gorm:"foreignKey:PayableAccountID;constraint:OnDelete:SET NULL;"`
 	PaymentAccountID *uint    `json:"payment_account_id"`
 	PaymentAccount   *Account `gorm:"foreignKey:PaymentAccountID;constraint:OnDelete:SET NULL;"`
-	ProductID        uint     `json:"product_id"`
+	ProductID        uint     `json:"product_id" binding:"required"`
 	Product          *Product `gorm:"constraint:OnDelete:CASCADE;"`
 	StockEntryID     *uint
 	StockEntry       *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`

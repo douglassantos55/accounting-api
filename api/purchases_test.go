@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -33,6 +32,9 @@ func TestPurchase(t *testing.T) {
 	events.Handle(events.PurchaseCreated, api.CreateStockEntry)
 	events.Handle(events.PurchaseCreated, api.CreateAccountingEntry)
 
+	events.Handle(events.PurchaseUpdated, api.UpdateStockEntry)
+	events.Handle(events.PurchaseUpdated, api.UpdateAccountingEntry)
+
 	db.Create(&models.Company{Name: "Testing Company"})
 
 	// ID: 1
@@ -42,7 +44,6 @@ func TestPurchase(t *testing.T) {
 		CompanyID: 1,
 	}
 	db.Create(&cash)
-	fmt.Printf("cash.ID: %v\n", cash.ID)
 
 	// ID: 2
 	revenue := &models.Account{
@@ -336,6 +337,228 @@ func TestPurchase(t *testing.T) {
 
 		if w.Code != http.StatusNotFound {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update paid", func(t *testing.T) {
+		req := Put(t, "/purchases/1", map[string]interface{}{
+			"qty":                10,
+			"price":              155.75,
+			"paid":               true,
+			"product_id":         1,
+			"payment_date":       time.Now(),
+			"payment_account_id": cash.ID,
+			"payable_account_id": nil,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchase models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchase); err != nil {
+			t.Error("failed parsing JSON", err)
+		}
+
+		if purchase.Qty != 10 {
+			t.Errorf("Expected qty %v, got %v", 10, purchase.Qty)
+		}
+
+		// Check if stock entries are updated
+		var product *models.Product
+		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 15 {
+			t.Errorf("Expected %v stock, got %v", 15, product.Inventory())
+		}
+
+		// Check if payment account is updated
+		var payment *models.Account
+		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payment.Balance() != -10*155.75 {
+			t.Errorf("Expected balance %v, got %v", -10*155.75, payment.Balance())
+		}
+
+		// Checks if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != 15*155.75 {
+			t.Errorf("Expected balance %v, got %v", 15*155.75, inv.Balance())
+		}
+	})
+
+	t.Run("Update not paid", func(t *testing.T) {
+		req := Put(t, "/purchases/2", map[string]interface{}{
+			"qty":                10,
+			"price":              155.75,
+			"paid":               false,
+			"product_id":         1,
+			"payment_date":       nil,
+			"payment_account_id": nil,
+			"payable_account_id": receivables.ID,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchase models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchase); err != nil {
+			t.Error("failed parsing JSON", err)
+		}
+
+		if purchase.Qty != 10 {
+			t.Errorf("Expected qty %v, got %v", 10, purchase.Qty)
+		}
+
+		// Check if stock entries are updated
+		var product *models.Product
+		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 20 {
+			t.Errorf("Expected %v stock, got %v", 20, product.Inventory())
+		}
+
+		// Check if payment account remains the same
+		var payment *models.Account
+		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payment.Balance() != -10*155.75 {
+			t.Errorf("Expected balance %v, got %v", -10*155.75, payment.Balance())
+		}
+
+		// Check if payable account is updated
+		var payable *models.Account
+		if db.Preload("Transactions").First(&payable, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payable.Balance() != 10*155.75 {
+			t.Errorf("Expected balance %v, got %v", 10*155.75, payable.Balance())
+		}
+
+		// Checks if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != 20*155.75 {
+			t.Errorf("Expected balance %v, got %v", 20*155.75, inv.Balance())
+		}
+	})
+
+	t.Run("Update to paid", func(t *testing.T) {
+		req := Put(t, "/purchases/2", map[string]interface{}{
+			"qty":                10,
+			"price":              155.75,
+			"paid":               true,
+			"product_id":         1,
+			"payment_date":       time.Now(),
+			"payment_account_id": cash.ID,
+			"payable_account_id": receivables.ID,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchase models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchase); err != nil {
+			t.Error("failed parsing JSON", err)
+		}
+
+		if !purchase.Paid {
+			t.Error("Expected purchase to be paid")
+		}
+
+		// Check if payable account is reduced
+		var payable *models.Account
+		if db.Preload("Transactions").First(&payable, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payable.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, payable.Balance())
+		}
+
+		// Check if payment account is reduced
+		var payment *models.Account
+		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payment.Balance() != -20*155.75 {
+			t.Errorf("Expected balance %v, got %v", -20*155.75, payment.Balance())
+		}
+	})
+
+	t.Run("Update to not paid", func(t *testing.T) {
+		req := Put(t, "/purchases/1", map[string]interface{}{
+			"qty":                10,
+			"price":              155.75,
+			"paid":               false,
+			"product_id":         1,
+			"payment_date":       time.Now(),
+			"payment_account_id": cash.ID,
+			"payable_account_id": receivables.ID,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var purchase models.Purchase
+		if err := json.Unmarshal(w.Body.Bytes(), &purchase); err != nil {
+			t.Error("failed parsing JSON", err)
+		}
+
+		if purchase.Paid {
+			t.Error("Purchase should not be paid")
+		}
+
+		// Check if payable account is increased
+		var payable *models.Account
+		if db.Preload("Transactions").First(&payable, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payable.Balance() != 10*155.75 {
+			t.Errorf("Expected balance %v, got %v", 10*155.750, payable.Balance())
+		}
+
+		// Check if payment account is reduced
+		var payment *models.Account
+		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payment.Balance() != -10*155.75 {
+			t.Errorf("Expected balance %v, got %v", -10*155.75, payment.Balance())
 		}
 	})
 }
