@@ -301,41 +301,51 @@ func deletePurchase(context *gin.Context) {
 		return
 	}
 
+	tx := db.Begin()
+
 	var purchase *models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	query := db.Scopes(database.FromCompany(companyID))
+	query := tx.Scopes(database.FromCompany(companyID))
 	query = query.Preload("PaymentEntry.Transactions")
 	query = query.Preload("PayableEntry.Transactions")
 
 	if query.First(&purchase, id).Error != nil {
+		tx.Rollback()
 		context.Status(http.StatusNotFound)
 		return
 	}
 
-	if db.Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
+	// TODO: figure out why it does not cascade through entries
+	if tx.Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
+		tx.Rollback()
 		context.Status(http.StatusInternalServerError)
 		return
 	}
 
 	if purchase.PaymentEntryID != nil {
-		if db.Unscoped().Delete(&models.Entry{}, *purchase.PaymentEntryID).Error != nil {
+		if tx.Unscoped().Delete(&models.Entry{}, *purchase.PaymentEntryID).Error != nil {
+			tx.Rollback()
 			context.Status(http.StatusInternalServerError)
 			return
 		}
 	}
 
 	if purchase.PayableEntryID != nil {
-		if db.Unscoped().Delete(&models.Entry{}, *purchase.PayableEntryID).Error != nil {
+		if tx.Unscoped().Delete(&models.Entry{}, *purchase.PayableEntryID).Error != nil {
+			tx.Rollback()
 			context.Status(http.StatusInternalServerError)
 			return
 		}
 	}
 
-	if db.Unscoped().Delete(&models.Purchase{}, id).Error != nil {
+	if tx.Unscoped().Delete(&models.Purchase{}, id).Error != nil {
+		tx.Rollback()
 		context.Status(http.StatusInternalServerError)
 		return
 	}
+
+	tx.Commit()
 
 	context.Status(http.StatusNoContent)
 }
