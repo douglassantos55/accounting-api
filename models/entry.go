@@ -7,8 +7,8 @@ import (
 
 type Entry struct {
 	gorm.Model
-	Description  string `binding:"required"`
-	PurchaseID   *uint
+	Description  string    `binding:"required"`
+	PurchaseID   *uint     `json:"purchase_id"`
 	Purchase     *Purchase `gorm:"constraint:OnDelete:CASCADE;"`
 	CompanyID    uint
 	Company      *Company       `gorm:"constraint:OnDelete:CASCADE"`

@@ -20,6 +20,7 @@ func RegisterEntriesEndpoint(router *gin.Engine) {
 	group.GET("", listEntries)
 	group.GET("/:id", viewEntry)
 	group.PUT("/:id", updateEntry)
+	group.DELETE("/:id", deleteEntry)
 }
 
 func createEntry(context *gin.Context) {
@@ -136,4 +137,33 @@ func updateEntry(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, entry)
+}
+
+func deleteEntry(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var entry *models.Entry
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Delete(&models.Entry{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }

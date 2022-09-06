@@ -313,4 +313,112 @@ func TestEntries(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		req := Delete(t, "/entries/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.Entry{}, 1).Error == nil {
+			t.Error("Should have deleted entry")
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/entries/2321")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/entries/snatohe")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/entries/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Create with purchase", func(t *testing.T) {
+		db.AutoMigrate(&models.Product{})
+		db.AutoMigrate(&models.Purchase{})
+
+		inventory := &models.Account{
+			Name:      "Inventory",
+			Type:      models.Asset,
+			CompanyID: 1,
+		}
+
+		db.Create(inventory)
+
+		db.Create(&models.Product{
+			Name:               "Product",
+			Price:              10,
+			CompanyID:          1,
+			InventoryAccountID: inventory.ID,
+		})
+
+		db.Create(&models.Purchase{
+			Qty:       1,
+			Price:     10,
+			ProductID: 1,
+			CompanyID: 1,
+		})
+
+		req := Post(t, "/entries", map[string]interface{}{
+			"description": "With Purchase",
+			"purchase_id": 1,
+			"transactions": []map[string]interface{}{
+				{"account_id": cash.ID, "value": 1000},
+				{"account_id": revenue.ID, "value": 1000},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var entry models.Entry
+		if err := json.Unmarshal(w.Body.Bytes(), &entry); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if entry.ID != 3 {
+			t.Errorf("Expected ID %v, got %v", 3, entry.ID)
+		}
+
+		if len(entry.Transactions) != 2 {
+			t.Errorf("Expected %v transactions, got %v", 2, len(entry.Transactions))
+		}
+
+		if entry.PurchaseID == nil {
+			t.Error("Should have a purchase ID")
+		}
+	})
 }
