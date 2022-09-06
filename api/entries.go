@@ -19,6 +19,7 @@ func RegisterEntriesEndpoint(router *gin.Engine) {
 	group.POST("", createEntry)
 	group.GET("", listEntries)
 	group.GET("/:id", viewEntry)
+	group.PUT("/:id", updateEntry)
 }
 
 func createEntry(context *gin.Context) {
@@ -88,6 +89,49 @@ func viewEntry(context *gin.Context) {
 
 	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
+		return
+	}
+
+	context.JSON(http.StatusOK, entry)
+}
+
+func updateEntry(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var entry *models.Entry
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if err := context.ShouldBindJSON(&entry); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	if !entry.IsBalanced() {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrEntryNotBalanced.Error(),
+		})
+		return
+	}
+
+	if db.Save(entry).Error != nil {
+		context.Status(http.StatusInternalServerError)
 		return
 	}
 

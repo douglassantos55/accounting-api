@@ -204,4 +204,113 @@ func TestEntries(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		req := Put(t, "/entries/1", map[string]interface{}{
+			"description": "Updated entry",
+			"transactions": []map[string]interface{}{
+				{"value": 500, "account_id": revenue.ID},
+				{"value": 500, "account_id": cash.ID},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var entry models.Entry
+		if err := json.Unmarshal(w.Body.Bytes(), &entry); err != nil {
+			t.Error("Error parsing JSON", err)
+		}
+
+		if entry.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, entry.ID)
+		}
+
+		if entry.Description != "Updated entry" {
+			t.Errorf("Expected description %v, got %v", "Updated entry", entry.Description)
+		}
+
+		if !entry.IsBalanced() {
+			t.Error("Entry should be balanced")
+		}
+
+		if len(entry.Transactions) != 2 {
+			t.Errorf("Expected %v transactions, got %v", 2, len(entry.Transactions))
+		}
+
+		for idx, transaction := range entry.Transactions {
+			if transaction.Value != 500 {
+				t.Errorf("Expected value %v, got %v", 500, transaction.Value)
+			}
+
+			if idx == 0 && transaction.AccountID != revenue.ID {
+				t.Errorf("Expected accountID %v, got %v", revenue.ID, transaction.AccountID)
+			}
+
+			if idx == 1 && transaction.AccountID != cash.ID {
+				t.Errorf("Expected accountID %v, got %v", cash.ID, transaction.AccountID)
+			}
+		}
+	})
+
+	t.Run("Update without transactions", func(t *testing.T) {
+		req := Put(t, "/entries/1", map[string]interface{}{
+			"description":  "Updated entry",
+			"transactions": []map[string]interface{}{},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("Update unbalanced", func(t *testing.T) {
+		req := Put(t, "/entries/1", map[string]interface{}{
+			"description": "Updated entry",
+			"transactions": []map[string]interface{}{
+				{"value": 600, "account_id": revenue.ID},
+				{"value": 500, "account_id": cash.ID},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrEntryNotBalanced.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrEntryNotBalanced.Error(), response["error"])
+		}
+	})
+
+	t.Run("Update from another company", func(t *testing.T) {
+		req := Put(t, "/entries/2", map[string]interface{}{
+			"description": "Updated entry",
+			"transactions": []map[string]interface{}{
+				{"value": 500, "account_id": revenue.ID},
+				{"value": 500, "account_id": cash.ID},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
