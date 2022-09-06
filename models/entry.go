@@ -9,7 +9,7 @@ type Entry struct {
 	gorm.Model
 	Description  string
 	PurchaseID   *uint
-	Purchase     *Purchase
+	Purchase     *Purchase `gorm:"constraint:OnDelete:CASCADE;"`
 	CompanyID    uint
 	Company      *Company
 	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
@@ -41,5 +41,5 @@ type Transaction struct {
 	AccountID uint
 	Account   *Account
 	EntryID   uint
-	Entry     *Entry
+	Entry     *Entry `gorm:"constraint:OnDelete:CASCADE"`
 }

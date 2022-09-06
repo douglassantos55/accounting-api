@@ -23,6 +23,7 @@ func RegisterPurchaseEndpoints(router *gin.Engine) {
 	group.GET("", listPurchases)
 	group.GET("/:id", viewPurchase)
 	group.PUT("/:id", updatePurchase)
+	group.DELETE("/:id", deletePurchase)
 }
 
 func CreateStockEntry(data interface{}) {
@@ -263,6 +264,20 @@ func updatePurchase(context *gin.Context) {
 		return
 	}
 
+	if purchase.Paid && purchase.PaymentAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrPaymentAccountMissing,
+		})
+		return
+	}
+
+	if !purchase.Paid && purchase.PayableAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrPayableAccountMissing,
+		})
+		return
+	}
+
 	if db.Save(&purchase).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
@@ -271,4 +286,56 @@ func updatePurchase(context *gin.Context) {
 	events.Dispatch(events.PurchaseUpdated, purchase)
 
 	context.JSON(http.StatusOK, purchase)
+}
+
+func deletePurchase(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var purchase *models.Purchase
+	companyID := context.Value("CompanyID").(uint)
+
+	query := db.Scopes(database.FromCompany(companyID))
+	query = query.Preload("PaymentEntry.Transactions")
+	query = query.Preload("PayableEntry.Transactions")
+
+	if query.First(&purchase, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	if purchase.PaymentEntryID != nil {
+		if db.Unscoped().Delete(&models.Entry{}, *purchase.PaymentEntryID).Error != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if purchase.PayableEntryID != nil {
+		if db.Unscoped().Delete(&models.Entry{}, *purchase.PayableEntryID).Error != nil {
+			context.Status(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if db.Unscoped().Delete(&models.Purchase{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }

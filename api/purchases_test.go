@@ -512,6 +512,16 @@ func TestPurchase(t *testing.T) {
 		if payment.Balance() != -20*155.75 {
 			t.Errorf("Expected balance %v, got %v", -20*155.75, payment.Balance())
 		}
+
+		// Checks if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != 20*155.75 {
+			t.Errorf("Expected balance %v, got %v", 20*155.75, inv.Balance())
+		}
 	})
 
 	t.Run("Update to not paid", func(t *testing.T) {
@@ -551,7 +561,7 @@ func TestPurchase(t *testing.T) {
 			t.Errorf("Expected balance %v, got %v", 10*155.750, payable.Balance())
 		}
 
-		// Check if payment account is reduced
+		// Check if payable account is reduced
 		var payment *models.Account
 		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
 			t.Error("Should retrieve account")
@@ -559,6 +569,127 @@ func TestPurchase(t *testing.T) {
 
 		if payment.Balance() != -10*155.75 {
 			t.Errorf("Expected balance %v, got %v", -10*155.75, payment.Balance())
+		}
+
+		// Checks if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != 20*155.75 {
+			t.Errorf("Expected balance %v, got %v", 20*155.75, inv.Balance())
+		}
+	})
+
+	t.Run("Delete paid", func(t *testing.T) {
+		req := Delete(t, "/purchases/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.Purchase{}, 2).Error == nil {
+			t.Error("Should have deleted purchase")
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		db.Preload("StockEntries").First(&product, 1)
+
+		if product.Inventory() != 10 {
+			t.Errorf("Expected stock %v, got %v", 10, product.Inventory())
+		}
+
+		// Check if payment account is updated
+		var payment *models.Account
+		db.Preload("Transactions").First(&payment, cash.ID)
+
+		if payment.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, payment.Balance())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		db.Preload("Transactions").First(&inv, inventory.ID)
+
+		if inv.Balance() != 10*155.75 {
+			t.Errorf("Expected balance %v, got %v", 10*155.75, inv.Balance())
+		}
+	})
+
+	t.Run("Delete not paid", func(t *testing.T) {
+		req := Delete(t, "/purchases/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.Purchase{}, 1).Error == nil {
+			t.Error("Should have deleted purchase")
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		db.Preload("StockEntries").First(&product, 1)
+
+		if product.Inventory() != 0 {
+			t.Errorf("Expected stock %v, got %v", 0, product.Inventory())
+		}
+
+		// Check if payable account is updated
+		var payable *models.Account
+		db.Preload("Transactions").First(&payable, receivables.ID)
+
+		if payable.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, payable.Balance())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		db.Preload("Transactions").First(&inv, inventory.ID)
+
+		if inv.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, inv.Balance())
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/purchases/1423")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/purchases/asontehu")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/purchases/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
 }
