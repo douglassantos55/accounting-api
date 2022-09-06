@@ -7,12 +7,12 @@ import (
 
 type Entry struct {
 	gorm.Model
-	Description  string
+	Description  string `binding:"required"`
 	PurchaseID   *uint
 	Purchase     *Purchase `gorm:"constraint:OnDelete:CASCADE;"`
 	CompanyID    uint
-	Company      *Company
-	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
+	Company      *Company       `gorm:"constraint:OnDelete:CASCADE"`
+	Transactions []*Transaction `binding:"min=2" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (e Entry) IsBalanced() bool {
@@ -23,7 +23,7 @@ func (e Entry) IsBalanced() bool {
 
 		if account == nil {
 			db, _ := database.GetConnection()
-			db.Find(Account{}).Where("ID", transaction.AccountID).First(&account)
+			db.First(&account, transaction.AccountID)
 		}
 
 		if account.TransactionType() == Debit {
@@ -37,8 +37,8 @@ func (e Entry) IsBalanced() bool {
 
 type Transaction struct {
 	gorm.Model
-	Value     float64
-	AccountID uint
+	Value     float64 `binding:"required"`
+	AccountID uint    `json:"account_id" binding:"required"`
 	Account   *Account
 	EntryID   uint
 	Entry     *Entry `gorm:"constraint:OnDelete:CASCADE"`
