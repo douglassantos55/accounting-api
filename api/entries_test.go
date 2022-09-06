@@ -17,8 +17,8 @@ func TestEntries(t *testing.T) {
 
 	db, _ := database.GetConnection()
 
-	db.AutoMigrate(&models.Account{})
 	db.AutoMigrate(&models.Entry{})
+	db.AutoMigrate(&models.Account{})
 	db.AutoMigrate(&models.Transaction{})
 
 	t.Cleanup(database.Cleanup)
@@ -117,6 +117,91 @@ func TestEntries(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+	})
+
+	t.Run("List", func(t *testing.T) {
+		db.Create(&models.Company{Name: "Other Company"})
+
+		// This entry should not be retrieved
+		db.Create(&models.Entry{
+			Description: "Sales of oranges",
+			CompanyID:   2,
+			Transactions: []*models.Transaction{
+				{Value: 100, AccountID: cash.ID},
+				{Value: 100, AccountID: revenue.ID},
+			},
+		})
+
+		req := Get(t, "/entries")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var entries []models.Entry
+		if err := json.Unmarshal(w.Body.Bytes(), &entries); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(entries) != 1 {
+			t.Errorf("Expected %v entries, got %v", 1, len(entries))
+		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/entries/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var entry models.Entry
+		if err := json.Unmarshal(w.Body.Bytes(), &entry); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if entry.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, entry.ID)
+		}
+	})
+
+	t.Run("Get non existent", func(t *testing.T) {
+		req := Get(t, "/entries/1533")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get invalid", func(t *testing.T) {
+		req := Get(t, "/entries/asoetnuh")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/entries/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
 }
