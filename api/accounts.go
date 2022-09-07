@@ -29,7 +29,7 @@ func listAccounts(context *gin.Context) {
 	var items []*models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).Find(&items).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +54,7 @@ func viewAccount(context *gin.Context) {
 	var account *models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&account, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&account, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -102,7 +102,7 @@ func updateAccount(context *gin.Context) {
 	var account *models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&account, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&account, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -136,7 +136,7 @@ func deleteAccount(context *gin.Context) {
 
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&models.Account{}, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&models.Account{}, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}

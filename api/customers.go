@@ -64,7 +64,7 @@ func listCustomers(context *gin.Context) {
 	var items []*models.Customer
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).Find(&items).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -88,7 +88,7 @@ func viewCustomer(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 	var customer *models.Customer
 
-	if db.Scopes(database.FromCompany(companyID)).First(&customer, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&customer, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -112,7 +112,7 @@ func updateCustomer(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 	var customer *models.Customer
 
-	if db.Scopes(database.FromCompany(companyID)).First(&customer, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&customer, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -152,12 +152,12 @@ func deleteCustomer(context *gin.Context) {
 
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&models.Customer{}, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&models.Customer{}, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
 
-	if result := db.Scopes(database.FromCompany(companyID)).Delete(&models.Customer{}, id); result.Error != nil {
+	if result := db.Scopes(models.FromCompany(companyID)).Delete(&models.Customer{}, id); result.Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}

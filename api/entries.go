@@ -65,7 +65,7 @@ func listEntries(context *gin.Context) {
 	var entries []models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if result := db.Scopes(database.FromCompany(companyID)).Find(&entries); result.Error != nil {
+	if result := db.Scopes(models.FromCompany(companyID)).Find(&entries); result.Error != nil {
 		log.Print("Could not find entries", result.Error)
 	}
 
@@ -88,7 +88,7 @@ func viewEntry(context *gin.Context) {
 	var entry models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -112,7 +112,7 @@ func updateEntry(context *gin.Context) {
 	var entry *models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -155,7 +155,7 @@ func deleteEntry(context *gin.Context) {
 	var entry *models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&entry, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}

@@ -61,7 +61,7 @@ func listVendors(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	var vendors []*models.Vendor
-	if db.Scopes(database.FromCompany(companyID)).Find(&vendors).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&vendors).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -85,7 +85,7 @@ func viewVendor(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	var vendor *models.Vendor
-	if db.Scopes(database.FromCompany(companyID)).First(&vendor, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&vendor, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -109,7 +109,7 @@ func updateVendor(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	var vendor *models.Vendor
-	if db.Scopes(database.FromCompany(companyID)).First(&vendor, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&vendor, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -151,7 +151,7 @@ func deleteVendor(context *gin.Context) {
 
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&models.Vendor{}, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&models.Vendor{}, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}

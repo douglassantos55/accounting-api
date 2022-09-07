@@ -81,7 +81,7 @@ func listProducts(context *gin.Context) {
 	var products []*models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).Find(&products).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&products).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -105,7 +105,7 @@ func viewProduct(context *gin.Context) {
 	var product *models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&product, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&product, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -129,7 +129,7 @@ func updateProduct(context *gin.Context) {
 	var product models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&product, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&product, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -172,12 +172,12 @@ func deleteProduct(context *gin.Context) {
 	var product models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&product, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&product, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
 
-	if db.Scopes(database.FromCompany(companyID)).Delete(&models.Product{}, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Delete(&models.Product{}, id).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}

@@ -200,7 +200,7 @@ func listPurchases(context *gin.Context) {
 	var purchases []models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).Find(&purchases).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&purchases).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -224,7 +224,7 @@ func viewPurchase(context *gin.Context) {
 	var purchase models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(database.FromCompany(companyID)).First(&purchase, id).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).First(&purchase, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -248,7 +248,7 @@ func updatePurchase(context *gin.Context) {
 	var purchase *models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	query := db.Scopes(database.FromCompany(companyID))
+	query := db.Scopes(models.FromCompany(companyID))
 	query = query.Preload("PaymentEntry.Transactions")
 	query = query.Preload("PayableEntry.Transactions")
 
@@ -306,7 +306,7 @@ func deletePurchase(context *gin.Context) {
 	var purchase *models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	query := tx.Scopes(database.FromCompany(companyID))
+	query := tx.Scopes(models.FromCompany(companyID))
 	query = query.Preload("PaymentEntry.Transactions")
 	query = query.Preload("PayableEntry.Transactions")
 

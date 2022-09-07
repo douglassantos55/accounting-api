@@ -41,12 +41,6 @@ func getDialector(driver string, dns string) gorm.Dialector {
 	}
 }
 
-func FromCompany(companyID uint) func(d *gorm.DB) *gorm.DB {
-	return func(d *gorm.DB) *gorm.DB {
-		return d.Where("company_id", companyID)
-	}
-}
-
 func Cleanup() {
 	migrator := connection.Migrator()
 	tables, _ := migrator.GetTables()
