@@ -13,10 +13,10 @@ type Sale struct {
 	PaymentAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	ReceivableAccount *Account `gorm:"constraint:OnDelete:SET NULL;"`
 
-	CustomerID          uint
+	CustomerID          uint `json:"customer_id"`
 	CompanyID           uint
-	PaymentAccountID    *uint
-	ReceivableAccountID *uint
+	PaymentAccountID    *uint `json:"payment_account_id"`
+	ReceivableAccountID *uint `json:"receivable_account_id"`
 }
 
 func (s Sale) Total() float64 {
@@ -31,7 +31,7 @@ type Item struct {
 	gorm.Model
 	Qty       uint
 	Price     float64
-	ProductID uint
+	ProductID uint `json:"product_id"`
 	Product   *Product
 	SaleID    uint
 	Sale      *Sale
