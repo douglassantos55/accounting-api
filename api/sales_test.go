@@ -103,8 +103,6 @@ func TestSales(t *testing.T) {
 		},
 	})
 
-	// 58000 - 1000 - 2000 = 55000
-
 	router := api.GetRouter()
 
 	t.Run("Create paid", func(t *testing.T) {
@@ -344,6 +342,52 @@ func TestSales(t *testing.T) {
 
 		if recv.Balance() != 4500 {
 			t.Errorf("Expected balance %v, got %v", 4500, recv.Balance())
+		}
+	})
+
+	t.Run("Create without enough stock", func(t *testing.T) {
+		req := Post(t, "/sales", map[string]interface{}{
+			"paid":                  true,
+			"customer_id":           1,
+			"payment_account_id":    cash.ID,
+			"receivable_account_id": nil,
+			"items": []map[string]interface{}{
+				{"qty": 500, "price": 200, "product_id": 1},
+				{"qty": 10, "price": 250, "product_id": 2},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrNotEnoughStock.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrNotEnoughStock.Error(), response["error"])
+		}
+	})
+
+	t.Run("Create without items", func(t *testing.T) {
+		req := Post(t, "/sales", map[string]interface{}{
+			"paid":                  true,
+			"customer_id":           1,
+			"payment_account_id":    cash.ID,
+			"receivable_account_id": nil,
+			"items":                 []map[string]interface{}{},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 	})
 }

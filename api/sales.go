@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"math"
 	"net/http"
 
@@ -8,6 +9,11 @@ import (
 	"example.com/accounting/events"
 	"example.com/accounting/models"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	ErrReceivableAccountMissing = errors.New("Receivables account is required")
+	ErrNotEnoughStock           = errors.New("Not enough stock")
 )
 
 func RegisterSalesEndpoints(router *gin.Engine) {
@@ -120,10 +126,37 @@ func createSale(context *gin.Context) {
 		return
 	}
 
+	if sale.Paid && sale.PaymentAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrPaymentAccountMissing,
+		})
+		return
+	}
+
+	if !sale.Paid && sale.ReceivableAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrReceivableAccountMissing,
+		})
+		return
+	}
+
 	db, err := database.GetConnection()
 	if err != nil {
 		context.Status(http.StatusInternalServerError)
 		return
+	}
+
+	for _, item := range sale.Items {
+		if item.Product == nil {
+			db.Preload("StockEntries").First(&item.Product, item.ProductID)
+		}
+
+		if item.Product.Inventory() < item.Qty {
+			context.JSON(http.StatusBadRequest, gin.H{
+				"error": ErrNotEnoughStock.Error(),
+			})
+			return
+		}
 	}
 
 	sale.CompanyID = context.Value("CompanyID").(uint)

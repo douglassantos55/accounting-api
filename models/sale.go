@@ -7,13 +7,13 @@ import (
 type Sale struct {
 	gorm.Model
 	Paid              bool
-	Items             []*Item `gorm:"constraint:OnDelete:CASCADE;"`
+	Items             []*Item `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1"`
 	Customer          *Customer
 	Company           *Company
 	PaymentAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
 	ReceivableAccount *Account `gorm:"constraint:OnDelete:SET NULL;"`
 
-	CustomerID          uint `json:"customer_id"`
+	CustomerID          uint `json:"customer_id" binding:"required"`
 	CompanyID           uint
 	PaymentAccountID    *uint `json:"payment_account_id"`
 	ReceivableAccountID *uint `json:"receivable_account_id"`
