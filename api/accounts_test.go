@@ -22,6 +22,7 @@ func Request(t *testing.T, method, url string, data interface{}) *http.Request {
 
 	req, err := http.NewRequest(method, url, bytes.NewReader(jsonBytes))
 	req.Header.Set("content-type", "application/json")
+	req.Header.Set("CompanyID", "1")
 
 	return req
 }

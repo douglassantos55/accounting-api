@@ -1,6 +1,9 @@
 package api
 
 import (
+	"net/http"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,7 +14,12 @@ func GetRouter() *gin.Engine {
 		router = gin.Default()
 
 		router.Use(func(c *gin.Context) {
-			c.Set("CompanyID", uint(1))
+			companyID, err := strconv.ParseUint(c.Request.Header.Get("CompanyID"), 10, 64)
+			if err != nil {
+				c.Status(http.StatusBadRequest)
+				return
+			}
+			c.Set("CompanyID", uint(companyID))
 		})
 
 		registerRoutes(router)

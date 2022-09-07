@@ -390,4 +390,141 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 	})
+
+	t.Run("Consider LIFO", func(t *testing.T) {
+		db.Create(&models.Company{
+			Name:  "Other company",
+			Stock: models.LIFO,
+		})
+
+		// ID 6
+		payment := &models.Account{
+			Name:      "Cash & Equivalents",
+			Type:      models.Asset,
+			CompanyID: 2,
+		}
+		db.Create(payment)
+
+		// ID 7
+		goods := &models.Account{
+			Name:      "Goods",
+			Type:      models.Asset,
+			CompanyID: 2,
+		}
+		db.Create(goods)
+
+		// ID 8
+		income := &models.Account{
+			Name:      "Revenue",
+			Type:      models.Revenue,
+			CompanyID: 2,
+		}
+		db.Create(income)
+
+		// ID 9
+		expenses := &models.Account{
+			Name:      "Cost of sales",
+			Type:      models.Expense,
+			CompanyID: 2,
+		}
+		db.Create(expenses)
+
+		db.Create(&models.Product{
+			Name:                "Product 5",
+			Price:               500,
+			CompanyID:           2,
+			Purchasable:         true,
+			RevenueAccountID:    &income.ID,
+			CostOfSaleAccountID: &expenses.ID,
+			InventoryAccountID:  goods.ID,
+			StockEntries: []*models.StockEntry{
+				{Qty: 100, Price: 400},
+				{Qty: 100, Price: 450},
+			},
+		})
+
+		db.Create(&models.Customer{
+			Name:      "Customer",
+			Email:     "customer@email.com",
+			CompanyID: 2,
+		})
+
+		req := Post(t, "/sales", map[string]interface{}{
+			"paid":                  true,
+			"customer_id":           2,
+			"payment_account_id":    payment.ID,
+			"receivable_account_id": nil,
+			"items": []map[string]interface{}{
+				{"qty": 10, "price": 600, "product_id": 3},
+			},
+		})
+
+		req.Header.Set("CompanyID", "2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if sale.ID != 3 {
+			t.Errorf("Expected ID %v, got %v", 3, sale.ID)
+		}
+
+		// Check if product's stock is reduced
+		var product *models.Product
+		if db.Preload("StockEntries").First(&product, 3).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 190 {
+			t.Errorf("Expected %v stock, got %v", 190, product.Inventory())
+		}
+
+		// Check if inventory account is reduced
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, goods.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -4500 {
+			t.Errorf("Expected balance %v, got %v", -4500, inv.Balance())
+		}
+
+		// Check if revenue account is increased
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, income.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, rev.Balance())
+		}
+
+		// Check if cost of sales is increased
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, expenses.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 4500 {
+			t.Errorf("Expected balance %v, got %v", 4500, cost.Balance())
+		}
+
+		// Check if payment account is increased
+		var pay *models.Account
+		if db.Preload("Transactions").First(&pay, payment.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if pay.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, pay.Balance())
+		}
+	})
 }
