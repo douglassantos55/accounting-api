@@ -141,6 +141,14 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected user %v, got %v", 1, sale.CustomerID)
 		}
 
+		if sale.PaymentAccountID == nil {
+			t.Error("Should have payment account")
+		}
+
+		if sale.ReceivableAccountID != nil {
+			t.Errorf("Should not have receivable account, got %v", *sale.ReceivableAccountID)
+		}
+
 		if len(sale.Items) != 2 {
 			t.Errorf("Expected %v items, got %v", 2, len(sale.Items))
 		}
@@ -254,6 +262,14 @@ func TestSales(t *testing.T) {
 
 		if sale.CustomerID != 1 {
 			t.Errorf("Expected user %v, got %v", 1, sale.CustomerID)
+		}
+
+		if sale.PaymentAccountID != nil {
+			t.Errorf("Should not have payment account, got %v", *sale.PaymentAccountID)
+		}
+
+		if sale.ReceivableAccountID == nil {
+			t.Error("Should have receivable account")
 		}
 
 		if len(sale.Items) != 2 {
@@ -525,6 +541,123 @@ func TestSales(t *testing.T) {
 
 		if pay.Balance() != 6000 {
 			t.Errorf("Expected balance %v, got %v", 6000, pay.Balance())
+		}
+	})
+
+	t.Run("List", func(t *testing.T) {
+		req := Get(t, "/sales")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sales []models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sales); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(sales) != 2 {
+			t.Errorf("Expected %v sales, got %v", 2, len(sales))
+		}
+
+		for idx, sale := range sales {
+			if len(sale.Items) == 0 {
+				t.Error("Expected items to be retrieved along sale")
+			}
+
+			if sale.Customer == nil {
+				t.Error("Expected customer to be retrieved along sale")
+			}
+
+			if idx == 0 {
+				if sale.PaymentAccount == nil {
+					t.Error("Expected payment account to be retrieved along sale")
+				}
+				if sale.ReceivableAccount != nil {
+					t.Error("Expected receivable account to not be retrieved along sale")
+				}
+			}
+
+			if idx == 1 {
+				if sale.PaymentAccount != nil {
+					t.Error("Expected payment account to not be retrieved along sale")
+				}
+				if sale.ReceivableAccount == nil {
+					t.Error("Expected receivable account to be retrieved along sale")
+				}
+			}
+		}
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		req := Get(t, "/sales/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if sale.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, sale.ID)
+		}
+
+		if len(sale.Items) == 0 {
+			t.Error("Expected items to be retrieved along sale")
+		}
+
+		if sale.Customer == nil {
+			t.Error("Expected customer to be retrieved along sale")
+		}
+
+		if sale.PaymentAccount == nil {
+			t.Error("Expected payment account to be retrieved along sale")
+		}
+
+		if sale.ReceivableAccount != nil {
+			t.Error("Expected receivable account to not be retrieved along sale")
+		}
+	})
+
+	t.Run("Get non existent", func(t *testing.T) {
+		req := Get(t, "/sales/1222222")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get invalid", func(t *testing.T) {
+		req := Get(t, "/sales/asontehu")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Get from another company", func(t *testing.T) {
+		req := Get(t, "/sales/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
 }

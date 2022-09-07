@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"net/http"
+	"strconv"
 
 	"example.com/accounting/database"
 	"example.com/accounting/events"
@@ -19,6 +20,8 @@ var (
 func RegisterSalesEndpoints(router *gin.Engine) {
 	group := router.Group("/sales")
 	group.POST("", createSale)
+	group.GET("", listSales)
+	group.GET("/:id", viewSale)
 }
 
 func CreateAccountingEntries(data interface{}) {
@@ -167,6 +170,54 @@ func createSale(context *gin.Context) {
 	}
 
 	events.Dispatch(events.SaleCreated, sale)
+
+	context.JSON(http.StatusOK, sale)
+}
+
+func listSales(context *gin.Context) {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var sales []*models.Sale
+	companyID := context.Value("CompanyID").(uint)
+
+	query := db.Scopes(models.FromCompany(companyID))
+	query = query.Joins("PaymentAccount").Joins("ReceivableAccount")
+
+	if query.Preload("Items").Joins("Customer").Find(&sales).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, sales)
+}
+
+func viewSale(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var sale *models.Sale
+	companyID := context.Value("CompanyID").(uint)
+
+	query := db.Scopes(models.FromCompany(companyID))
+	query = query.Joins("PaymentAccount").Joins("ReceivableAccount")
+
+	if query.Preload("Items").Joins("Customer").First(&sale, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
 
 	context.JSON(http.StatusOK, sale)
 }
