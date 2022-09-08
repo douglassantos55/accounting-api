@@ -22,6 +22,7 @@ func RegisterSalesEndpoints(router *gin.Engine) {
 	group.POST("", createSale)
 	group.GET("", listSales)
 	group.GET("/:id", viewSale)
+	group.DELETE("/:id", deleteSale)
 }
 
 func CreateAccountingEntries(data interface{}) {
@@ -82,6 +83,7 @@ func CreateAccountingEntries(data interface{}) {
 		}
 
 		db.Create(&models.Entry{
+			SaleID:       &sale.ID,
 			Description:  "Sale of product",
 			CompanyID:    sale.CompanyID,
 			Transactions: transactions,
@@ -220,4 +222,34 @@ func viewSale(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, sale)
+}
+
+
+func deleteSale(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var sale *models.Sale
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(models.FromCompany(companyID)).First(&sale, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Unscoped().Delete(&models.Sale{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }

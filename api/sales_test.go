@@ -660,4 +660,69 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		req := Delete(t, "/sales/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.Sale{}, 1).Error == nil {
+			t.Error("Should not find sale")
+		}
+
+		// Check if product's stock is reduced
+		var product *models.Product
+		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 190 {
+			t.Errorf("Expected %v stock, got %v", 190, product.Inventory())
+		}
+
+		// Check if inventory account is reduced
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -3000 {
+			t.Errorf("Expected balance %v, got %v", -3000, inv.Balance())
+		}
+
+		// Check if revenue account is increased
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 4500 {
+			t.Errorf("Expected balance %v, got %v", 4500, rev.Balance())
+		}
+
+		// Check if cost of sales is increased
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 3000 {
+			t.Errorf("Expected balance %v, got %v", 3000, cost.Balance())
+		}
+
+		// Check if payment account is increased
+		var payment *models.Account
+		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if payment.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, payment.Balance())
+		}
+	})
 }

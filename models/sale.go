@@ -7,7 +7,8 @@ import (
 type Sale struct {
 	gorm.Model
 	Paid              bool
-	Items             []*Item `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1"`
+	Items             []*Item  `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1"`
+	Entries           []*Entry `gorm:"constraint:OnDelete:CASCADE"`
 	Customer          *Customer
 	Company           *Company
 	PaymentAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
