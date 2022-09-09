@@ -24,6 +24,7 @@ func TestSales(t *testing.T) {
 	db.AutoMigrate(&models.Company{})
 	db.AutoMigrate(&models.Customer{})
 	db.AutoMigrate(&models.StockEntry{})
+	db.AutoMigrate(&models.StockUsage{})
 	db.AutoMigrate(&models.Transaction{})
 
 	t.Cleanup(database.Cleanup)
@@ -179,8 +180,13 @@ func TestSales(t *testing.T) {
 
 		// Check if product's stock is reduced
 		var product *models.Product
-		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
 			t.Error("Should retrieve product")
+		}
+
+		var usages []*models.StockUsage
+		if result := db.Find(&usages); result.Error != nil {
+			t.Error(result.Error)
 		}
 
 		if product.Inventory() != 190 {
@@ -302,7 +308,7 @@ func TestSales(t *testing.T) {
 
 		// Check if product's stock is reduced
 		var product *models.Product
-		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
 			t.Error("Should retrieve product")
 		}
 
@@ -495,7 +501,7 @@ func TestSales(t *testing.T) {
 
 		// Check if product's stock is reduced
 		var product *models.Product
-		if db.Preload("StockEntries").First(&product, 3).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&product, 3).Error != nil {
 			t.Error("Should retrieve product")
 		}
 
@@ -677,7 +683,7 @@ func TestSales(t *testing.T) {
 
 		// Check if product's stock is reduced
 		var product *models.Product
-		if db.Preload("StockEntries").First(&product, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
 			t.Error("Should retrieve product")
 		}
 

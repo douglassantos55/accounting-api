@@ -1,8 +1,6 @@
 package models
 
-import (
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 type Product struct {
 	gorm.Model
@@ -22,20 +20,38 @@ type Product struct {
 	Company             *Company
 }
 
-func (p Product) Inventory() uint {
+func (p *Product) Inventory() uint {
 	var inventory uint = 0
 	for _, entry := range p.StockEntries {
-		inventory += entry.Qty
+		inventory += entry.Stock()
 	}
 	return inventory
 }
 
 type StockEntry struct {
 	gorm.Model
-	Qty       uint
-	Price     float64
-	ProductID uint
-	Product   *Product
+	Qty         uint
+	Price       float64
+	ProductID   uint
+	Product     *Product
+	StockUsages []*StockUsage `gorm:"constraint:OnDelete:CASCADE"`
+}
+
+func (e *StockEntry) Stock() uint {
+	used := uint(0)
+	for _, usage := range e.StockUsages {
+		used += usage.Qty
+	}
+	return e.Qty - used
+}
+
+type StockUsage struct {
+	gorm.Model
+	Qty          uint
+	SaleID       uint
+	Sale         *Sale `gorm:"constraint:OnDelete:CASCADE"`
+	StockEntryID uint
+	StockEntry   *StockEntry `gorm:"constraint:OnDelete:CASCADE"`
 }
 
 type Vendor struct {

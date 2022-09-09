@@ -22,6 +22,7 @@ func RegisterSalesEndpoints(router *gin.Engine) {
 	group.POST("", createSale)
 	group.GET("", listSales)
 	group.GET("/:id", viewSale)
+	group.PUT("/:id", updateSale)
 	group.DELETE("/:id", deleteSale)
 }
 
@@ -91,10 +92,11 @@ func CreateAccountingEntries(data interface{}) {
 	}
 }
 
-func ReduceProductStock(sale interface{}) {
+func ReduceProductStock(data interface{}) {
+	sale := data.(*models.Sale)
 	db, _ := database.GetConnection()
 
-	for _, item := range sale.(*models.Sale).Items {
+	for _, item := range sale.Items {
 		var product *models.Product
 		db.Joins("Company").Preload("StockEntries").First(&product, item.ProductID)
 
@@ -108,16 +110,21 @@ func ReduceProductStock(sale interface{}) {
 		left := item.Qty
 
 		for _, entry := range product.StockEntries {
-			qty := entry.Qty
-
 			if entry.Qty > left {
-				entry.Qty -= uint(left)
-				db.Save(&entry)
+				db.Create(&models.StockUsage{
+					Qty:          uint(left),
+					SaleID:       sale.ID,
+					StockEntryID: entry.ID,
+				})
 				break
 			} else {
-				db.Delete(&models.StockEntry{}, entry.ID)
+				db.Create(&models.StockUsage{
+					Qty:          entry.Qty,
+					SaleID:       sale.ID,
+					StockEntryID: entry.ID,
+				})
 			}
-			left -= qty
+			left -= entry.Qty
 		}
 	}
 }
@@ -224,6 +231,43 @@ func viewSale(context *gin.Context) {
 	context.JSON(http.StatusOK, sale)
 }
 
+func updateSale(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var sale *models.Sale
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(models.FromCompany(companyID)).First(&sale, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if err := context.ShouldBindJSON(&sale); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	if db.Save(sale).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	events.Dispatch(events.SaleUpdated, sale)
+
+	context.JSON(http.StatusOK, sale)
+}
 
 func deleteSale(context *gin.Context) {
 	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
