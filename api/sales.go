@@ -30,7 +30,7 @@ func CreateAccountingEntries(data interface{}) {
 	db, _ := database.GetConnection()
 
 	sale := data.(*models.Sale)
-	db.Joins("Company").Preload("Items").First(&sale, sale.ID)
+	db.Joins("Company").First(&sale, sale.ID)
 
 	for _, item := range sale.Items {
 		var product *models.Product
@@ -89,6 +89,20 @@ func CreateAccountingEntries(data interface{}) {
 			CompanyID:    sale.CompanyID,
 			Transactions: transactions,
 		})
+	}
+}
+
+func RestoreProductStock(sale *models.Sale) {
+	db, _ := database.GetConnection()
+
+	for _, item := range sale.Items {
+		var product *models.Product
+		db.Preload("StockEntries.StockUsages").First(&product, item.ProductID)
+
+		for _, entry := range product.StockEntries {
+			query := db.Where(&models.StockUsage{SaleID: sale.ID, StockEntryID: entry.ID})
+			query.Unscoped().Delete(&entry.StockUsages)
+		}
 	}
 }
 
@@ -247,10 +261,19 @@ func updateSale(context *gin.Context) {
 	var sale *models.Sale
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&sale, id).Error != nil {
+	query := db.Scopes(models.FromCompany(companyID))
+
+	if query.Preload("Items").First(&sale, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
+
+	tx := db.Where(&models.Entry{SaleID: &sale.ID})
+	tx.Unscoped().Delete(&sale.Entries)
+
+	sale.Entries = []*models.Entry{}
+
+	RestoreProductStock(sale)
 
 	if err := context.ShouldBindJSON(&sale); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{

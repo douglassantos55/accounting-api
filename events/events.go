@@ -4,6 +4,7 @@ type Event int
 
 const (
 	SaleCreated Event = iota
+	SaleUpdated
 	PurchaseCreated
 	PurchaseUpdated
 )

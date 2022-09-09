@@ -32,6 +32,9 @@ func TestSales(t *testing.T) {
 	events.Handle(events.SaleCreated, api.ReduceProductStock)
 	events.Handle(events.SaleCreated, api.CreateAccountingEntries)
 
+	events.Handle(events.SaleUpdated, api.ReduceProductStock)
+	events.Handle(events.SaleUpdated, api.CreateAccountingEntries)
+
 	if result := db.Create(&models.Company{Name: "Testing Company"}); result.Error != nil {
 		t.Error(result.Error)
 	}
@@ -680,8 +683,376 @@ func TestSales(t *testing.T) {
 		}
 	})
 
+	t.Run("Update paid", func(t *testing.T) {
+		req := Put(t, "/sales/1", map[string]interface{}{
+			"paid":                  true,
+			"customer_id":           1,
+			"payment_account_id":    cash.ID,
+			"receivable_account_id": nil,
+			"items": []map[string]interface{}{
+				{"qty": 20, "price": 300, "product_id": 1},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale *models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(sale.Items) != 1 {
+			t.Errorf("Expected %v item, got %v", 1, len(sale.Items))
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 170 {
+			t.Errorf("Expected %v stock, got %v", 170, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 190 {
+			t.Errorf("Expected %v stock, got %v", 190, prod.Inventory())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -5000 {
+			t.Errorf("Expected balance %v, got %v", -5000, inv.Balance())
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 10500 {
+			t.Errorf("Expected balance %v, got %v", 10500, rev.Balance())
+		}
+
+		// Check if cost of sales is updated
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 5000 {
+			t.Errorf("Expected balance %v, got %v", 5000, cost.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if db.Preload("Transactions").First(&pay, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if pay.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, pay.Balance())
+		}
+	})
+
+	t.Run("Update not paid", func(t *testing.T) {
+		req := Put(t, "/sales/2", map[string]interface{}{
+			"paid":                  false,
+			"customer_id":           1,
+			"payment_account_id":    nil,
+			"receivable_account_id": receivables.ID,
+			"items": []map[string]interface{}{
+				{"qty": 20, "price": 400, "product_id": 2},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale *models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(sale.Items) != 1 {
+			t.Errorf("Expected %v item, got %v", 1, len(sale.Items))
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, prod.Inventory())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -6000 {
+			t.Errorf("Expected balance %v, got %v", -6000, inv.Balance())
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 14000 {
+			t.Errorf("Expected balance %v, got %v", 14000, rev.Balance())
+		}
+
+		// Check if cost of sales is updated
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, cost.Balance())
+		}
+
+		// Check if receivable account is updated
+		var recv *models.Account
+		if db.Preload("Transactions").First(&recv, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if recv.Balance() != 8000 {
+			t.Errorf("Expected balance %v, got %v", 8000, recv.Balance())
+		}
+	})
+
+	t.Run("Update paid to not paid", func(t *testing.T) {
+		req := Put(t, "/sales/1", map[string]interface{}{
+			"paid":                  false,
+			"customer_id":           1,
+			"payment_account_id":    nil,
+			"receivable_account_id": receivables.ID,
+			"items": []map[string]interface{}{
+				{"qty": 20, "price": 400, "product_id": 2},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale *models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(sale.Items) != 1 {
+			t.Errorf("Expected %v item, got %v", 1, len(sale.Items))
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 200 {
+			t.Errorf("Expected %v stock, got %v", 200, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 160 {
+			t.Errorf("Expected %v stock, got %v", 160, prod.Inventory())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -8000 {
+			t.Errorf("Expected balance %v, got %v", -8000, inv.Balance())
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 16000 {
+			t.Errorf("Expected balance %v, got %v", 16000, rev.Balance())
+		}
+
+		// Check if cost of sales is updated
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 8000 {
+			t.Errorf("Expected balance %v, got %v", 8000, cost.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if db.Preload("Transactions").First(&pay, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if pay.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, pay.Balance())
+		}
+
+		// Check if receivable account is updated
+		var recv *models.Account
+		if db.Preload("Transactions").First(&recv, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if recv.Balance() != 16000 {
+			t.Errorf("Expected balance %v, got %v", 16000, recv.Balance())
+		}
+	})
+
+	t.Run("Update not paid to paid", func(t *testing.T) {
+		req := Put(t, "/sales/2", map[string]interface{}{
+			"paid":                  true,
+			"customer_id":           1,
+			"payment_account_id":    cash.ID,
+			"receivable_account_id": nil,
+			"items": []map[string]interface{}{
+				{"qty": 20, "price": 300, "product_id": 1},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var sale *models.Sale
+		if err := json.Unmarshal(w.Body.Bytes(), &sale); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if len(sale.Items) != 1 {
+			t.Errorf("Expected %v item, got %v", 1, len(sale.Items))
+		}
+
+		// Check if product stock is updated
+		var product *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, prod.Inventory())
+		}
+
+		// Check if inventory account is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != -6000 {
+			t.Errorf("Expected balance %v, got %v", -6000, inv.Balance())
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if rev.Balance() != 14000 {
+			t.Errorf("Expected balance %v, got %v", 14000, rev.Balance())
+		}
+
+		// Check if cost of sales is updated
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, cost.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if db.Preload("Transactions").First(&pay, cash.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if pay.Balance() != 6000 {
+			t.Errorf("Expected balance %v, got %v", 6000, pay.Balance())
+		}
+
+		// Check if receivable account is updated
+		var recv *models.Account
+		if db.Preload("Transactions").First(&recv, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if recv.Balance() != 8000 {
+			t.Errorf("Expected balance %v, got %v", 8000, recv.Balance())
+		}
+	})
+
 	t.Run("Delete paid", func(t *testing.T) {
-		req := Delete(t, "/sales/1")
+		req := Delete(t, "/sales/2")
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -690,7 +1061,7 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
 		}
 
-		if db.First(&models.Sale{}, 1).Error == nil {
+		if db.First(&models.Sale{}, 2).Error == nil {
 			t.Error("Should not find sale")
 		}
 
@@ -700,8 +1071,8 @@ func TestSales(t *testing.T) {
 			t.Error("Should retrieve product")
 		}
 
-		if product.Inventory() != 190 {
-			t.Errorf("Expected %v stock, got %v", 190, product.Inventory())
+		if product.Inventory() != 200 {
+			t.Errorf("Expected %v stock, got %v", 200, product.Inventory())
 		}
 
 		var prod *models.Product
@@ -709,41 +1080,41 @@ func TestSales(t *testing.T) {
 			t.Error("Should retrieve product", result.Error)
 		}
 
-		if prod.Inventory() != 190 {
-			t.Errorf("Expected %v stock, got %v", 190, prod.Inventory())
+		if prod.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, prod.Inventory())
 		}
 
-		// Check if inventory account is reduced
+		// Check if inventory account is updated
 		var inv *models.Account
 		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
 			t.Error("Should retrieve account")
 		}
 
-		if inv.Balance() != -3000 {
-			t.Errorf("Expected balance %v, got %v", -3000, inv.Balance())
+		if inv.Balance() != -4000 {
+			t.Errorf("Expected balance %v, got %v", -4000, inv.Balance())
 		}
 
-		// Check if revenue account is increased
+		// Check if revenue account is updated
 		var rev *models.Account
 		if db.Preload("Transactions").First(&rev, revenue.ID).Error != nil {
 			t.Error("Should retrieve account")
 		}
 
-		if rev.Balance() != 4500 {
-			t.Errorf("Expected balance %v, got %v", 4500, rev.Balance())
+		if rev.Balance() != 8000 {
+			t.Errorf("Expected balance %v, got %v", 8000, rev.Balance())
 		}
 
-		// Check if cost of sales is increased
+		// Check if cost of sales is updated
 		var cost *models.Account
 		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
 			t.Error("Should retrieve account")
 		}
 
-		if cost.Balance() != 3000 {
-			t.Errorf("Expected balance %v, got %v", 3000, cost.Balance())
+		if cost.Balance() != 4000 {
+			t.Errorf("Expected balance %v, got %v", 4000, cost.Balance())
 		}
 
-		// Check if payment account is increased
+		// Check if payment account is updated
 		var payment *models.Account
 		if db.Preload("Transactions").First(&payment, cash.ID).Error != nil {
 			t.Error("Should retrieve account")
@@ -755,7 +1126,7 @@ func TestSales(t *testing.T) {
 	})
 
 	t.Run("Delete not paid", func(t *testing.T) {
-		req := Delete(t, "/sales/2")
+		req := Delete(t, "/sales/1")
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
@@ -764,7 +1135,7 @@ func TestSales(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
 		}
 
-		if db.First(&models.Sale{}, 2).Error == nil {
+		if db.First(&models.Sale{}, 1).Error == nil {
 			t.Error("Should not find sale")
 		}
 
