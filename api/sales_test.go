@@ -184,13 +184,17 @@ func TestSales(t *testing.T) {
 			t.Error("Should retrieve product")
 		}
 
-		var usages []*models.StockUsage
-		if result := db.Find(&usages); result.Error != nil {
-			t.Error(result.Error)
-		}
-
 		if product.Inventory() != 190 {
 			t.Errorf("Expected %v stock, got %v", 190, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 190 {
+			t.Errorf("Expected %v stock, got %v", 190, prod.Inventory())
 		}
 
 		// Check if inventory account is reduced
@@ -314,6 +318,15 @@ func TestSales(t *testing.T) {
 
 		if product.Inventory() != 180 {
 			t.Errorf("Expected %v stock, got %v", 180, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 180 {
+			t.Errorf("Expected %v stock, got %v", 180, prod.Inventory())
 		}
 
 		// Check if inventory account is reduced
@@ -667,7 +680,7 @@ func TestSales(t *testing.T) {
 		}
 	})
 
-	t.Run("Delete", func(t *testing.T) {
+	t.Run("Delete paid", func(t *testing.T) {
 		req := Delete(t, "/sales/1")
 
 		w := httptest.NewRecorder()
@@ -689,6 +702,15 @@ func TestSales(t *testing.T) {
 
 		if product.Inventory() != 190 {
 			t.Errorf("Expected %v stock, got %v", 190, product.Inventory())
+		}
+
+		var prod *models.Product
+		if result := db.Preload("StockEntries.StockUsages").First(&prod, 2); result.Error != nil {
+			t.Error("Should retrieve product", result.Error)
+		}
+
+		if prod.Inventory() != 190 {
+			t.Errorf("Expected %v stock, got %v", 190, prod.Inventory())
 		}
 
 		// Check if inventory account is reduced
@@ -729,6 +751,103 @@ func TestSales(t *testing.T) {
 
 		if payment.Balance() != 0 {
 			t.Errorf("Expected balance %v, got %v", 0, payment.Balance())
+		}
+	})
+
+	t.Run("Delete not paid", func(t *testing.T) {
+		req := Delete(t, "/sales/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.Sale{}, 2).Error == nil {
+			t.Error("Should not find sale")
+		}
+
+		// Check if product's stock is reduced
+		var product *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&product, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if product.Inventory() != 200 {
+			t.Errorf("Expected %v stock, got %v", 200, product.Inventory())
+		}
+
+		var prod *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&prod, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if prod.Inventory() != 200 {
+			t.Errorf("Expected %v stock, got %v", 200, prod.Inventory())
+		}
+
+		// Check if inventory account is reduced
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, inventory.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if inv.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, inv.Balance())
+		}
+
+		// Check if receivable account is increased
+		var recv *models.Account
+		if db.Preload("Transactions").First(&recv, receivables.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if recv.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, recv.Balance())
+		}
+
+		// Check if cost of sales is increased
+		var cost *models.Account
+		if db.Preload("Transactions").First(&cost, cogs.ID).Error != nil {
+			t.Error("Should retrieve account")
+		}
+
+		if cost.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, cost.Balance())
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/sales/3215")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/sales/aosentuh")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/sales/3")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
 }
