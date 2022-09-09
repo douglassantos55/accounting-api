@@ -317,7 +317,7 @@ func deletePurchase(context *gin.Context) {
 	}
 
 	// TODO: figure out why it does not cascade through entries
-	if tx.Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
+	if tx.Unscoped().Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
 		tx.Rollback()
 		context.Status(http.StatusInternalServerError)
 		return
