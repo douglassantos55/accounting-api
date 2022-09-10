@@ -155,4 +155,83 @@ func TestServices(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Update", func(t *testing.T) {
+		db.Create(&models.Account{
+			Name:      "Cleaning revenue",
+			Type:      models.Revenue,
+			CompanyID: 1,
+		})
+
+		req := Put(t, "/services/1", map[string]interface{}{
+			"name":               "General Cleaning",
+			"revenue_account_id": 2,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var service *models.Service
+		if err := json.Unmarshal(w.Body.Bytes(), &service); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if service.ID != 1 {
+			t.Errorf("Expected ID %v, got %v", 1, service.ID)
+		}
+
+		if service.Name != "General Cleaning" {
+			t.Errorf("Expected name %v, got %v", "General Cleaning", service.Name)
+		}
+
+		if service.RevenueAccountID != 2 {
+			t.Errorf("Expected account %v, got %v", 2, service.RevenueAccountID)
+		}
+	})
+
+	t.Run("Update non existent", func(t *testing.T) {
+		req := Put(t, "/services/4202", map[string]interface{}{
+			"name":               "Renting",
+			"revenue_account_id": 2,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update invalid", func(t *testing.T) {
+		req := Put(t, "/services/sths", map[string]interface{}{
+			"name":               "Renting",
+			"revenue_account_id": 2,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Update from another company", func(t *testing.T) {
+		req := Put(t, "/services/2", map[string]interface{}{
+			"name":               "Renting",
+			"revenue_account_id": 2,
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }
