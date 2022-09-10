@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strconv"
 
 	"example.com/accounting/database"
 	"example.com/accounting/models"
@@ -11,6 +12,8 @@ import (
 func RegisterServicesEndpoints(router *gin.Engine) {
 	group := router.Group("/services")
 	group.POST("", createService)
+	group.GET("", listServices)
+	group.GET("/:id", viewService)
 }
 
 func createService(context *gin.Context) {
@@ -32,6 +35,48 @@ func createService(context *gin.Context) {
 
 	if db.Create(&service).Error != nil {
 		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, service)
+}
+
+func listServices(context *gin.Context) {
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var services []*models.Service
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(models.FromCompany(companyID)).Find(&services).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.JSON(http.StatusOK, services)
+}
+
+func viewService(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var service *models.Service
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(models.FromCompany(companyID)).First(&service, id).Error != nil {
+		context.Status(http.StatusNotFound)
 		return
 	}
 
