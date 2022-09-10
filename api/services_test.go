@@ -234,4 +234,64 @@ func TestServices(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
 		}
 	})
+
+	t.Run("Delete", func(t *testing.T) {
+		req := Delete(t, "/services/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		var service *models.Service
+		if db.First(&service, 1).Error == nil {
+			t.Error("Should have deleted service")
+		}
+	})
+
+	t.Run("Delete non existent", func(t *testing.T) {
+		req := Delete(t, "/services/4121")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete invalid", func(t *testing.T) {
+		req := Delete(t, "/services/snth")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete from another company", func(t *testing.T) {
+		req := Delete(t, "/services/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete deleted", func(t *testing.T) {
+		req := Delete(t, "/services/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
 }

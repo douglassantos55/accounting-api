@@ -15,6 +15,7 @@ func RegisterServicesEndpoints(router *gin.Engine) {
 	group.GET("", listServices)
 	group.GET("/:id", viewService)
 	group.PUT("/:id", updateService)
+	group.DELETE("/:id", deleteService)
 }
 
 func createService(context *gin.Context) {
@@ -118,4 +119,32 @@ func updateService(context *gin.Context) {
 	}
 
 	context.JSON(http.StatusOK, service)
+}
+
+func deleteService(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	companyID := context.Value("CompanyID").(uint)
+
+	if db.Scopes(models.FromCompany(companyID)).First(&models.Service{}, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if db.Delete(&models.Service{}, id).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }
