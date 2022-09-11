@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"math"
+
+	"gorm.io/gorm"
+)
 
 type Product struct {
 	gorm.Model
@@ -26,6 +30,30 @@ func (p *Product) Inventory() uint {
 		inventory += entry.Stock()
 	}
 	return inventory
+}
+
+func (p *Product) Cost(qty uint) float64 {
+	cost := 0.0
+	left := qty
+
+	// Invert entries for LIFO
+	if p.Company.Stock == LIFO {
+		for i, j := 0, len(p.StockEntries)-1; i < j; i, j = i+1, j-1 {
+			p.StockEntries[i], p.StockEntries[j] = p.StockEntries[j], p.StockEntries[i]
+		}
+	}
+
+	for _, entry := range p.StockEntries {
+		qty := math.Min(float64(left), float64(entry.Qty))
+		cost += entry.Price * qty
+		left -= uint(qty)
+
+		if left <= 0 {
+			break
+		}
+	}
+
+	return cost
 }
 
 type StockEntry struct {

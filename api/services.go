@@ -16,6 +16,7 @@ func RegisterServicesEndpoints(router *gin.Engine) {
 	group.GET("/:id", viewService)
 	group.PUT("/:id", updateService)
 	group.DELETE("/:id", deleteService)
+	group.POST("/perform", performService)
 }
 
 func createService(context *gin.Context) {
@@ -147,4 +148,63 @@ func deleteService(context *gin.Context) {
 	}
 
 	context.Status(http.StatusNoContent)
+}
+
+func performService(context *gin.Context) {
+	var performed *models.ServicePerformed
+	if err := context.ShouldBindJSON(&performed); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	performed.CompanyID = context.Value("CompanyID").(uint)
+
+	if db.Create(&performed).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	createEntries(performed)
+
+	context.JSON(http.StatusOK, performed)
+}
+
+func createEntries(performed *models.ServicePerformed) {
+	db, _ := database.GetConnection()
+
+	var service *models.Service
+	db.First(&service, performed.ServiceID)
+
+	db.Create(&models.Entry{
+		Description: "Service performed",
+		CompanyID:   performed.CompanyID,
+		Transactions: []*models.Transaction{
+			{AccountID: service.RevenueAccountID, Value: performed.Value},
+			{AccountID: *performed.PaymentAccountID, Value: performed.Value},
+		},
+	})
+
+	for _, consumption := range performed.Consumptions {
+		var prod *models.Product
+		db.Joins("Company").Preload("StockEntries").First(&prod, consumption.ProductID)
+
+		cost := prod.Cost(consumption.Qty)
+
+		db.Create(&models.Entry{
+			Description: "Usage for service",
+			CompanyID:   performed.CompanyID,
+			Transactions: []*models.Transaction{
+				{AccountID: prod.InventoryAccountID, Value: -cost},
+				{AccountID: service.CostOfServiceAccountID, Value: cost},
+			},
+		})
+	}
 }

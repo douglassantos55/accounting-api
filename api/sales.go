@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"math"
 	"net/http"
 	"strconv"
 
@@ -34,27 +33,9 @@ func CreateAccountingEntries(data interface{}) {
 
 	for _, item := range sale.Items {
 		var product *models.Product
-		db.Preload("StockEntries").First(&product, item.ProductID)
+		db.Joins("Company").Preload("StockEntries").First(&product, item.ProductID)
 
-		costOfSale := 0.0
-		left := item.Qty
-
-		// Invert entries for LIFO
-		if sale.Company.Stock == models.LIFO {
-			for i, j := 0, len(product.StockEntries)-1; i < j; i, j = i+1, j-1 {
-				product.StockEntries[i], product.StockEntries[j] = product.StockEntries[j], product.StockEntries[i]
-			}
-		}
-
-		for _, entry := range product.StockEntries {
-			qty := math.Min(float64(left), float64(entry.Qty))
-			costOfSale += entry.Price * qty
-			left -= uint(qty)
-
-			if left <= 0 {
-				break
-			}
-		}
+		costOfSale := product.Cost(item.Qty)
 
 		transactions := []*models.Transaction{
 			{
