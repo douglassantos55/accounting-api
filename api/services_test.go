@@ -292,6 +292,16 @@ func TestServices(t *testing.T) {
 			t.Errorf("Expected balance %v, got %v", 122, rev.Balance())
 		}
 
+		// Check if payment account is increased
+		var pay *models.Account
+		if result := db.Preload("Transactions").First(&pay, cash.ID); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if pay.Balance() != 122 {
+			t.Errorf("Expected balance %v, got %v", 122, pay.Balance())
+		}
+
 		// Check if products inventory is reduced
 		var inv *models.Account
 		if db.Preload("Transactions").First(&inv, 2).Error != nil {
