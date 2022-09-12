@@ -24,6 +24,7 @@ func TestServices(t *testing.T) {
 	db.AutoMigrate(&models.Account{})
 	db.AutoMigrate(&models.Product{})
 	db.AutoMigrate(&models.StockEntry{})
+	db.AutoMigrate(&models.StockUsage{})
 	db.AutoMigrate(&models.Transaction{})
 	db.AutoMigrate(&models.Consumption{})
 	db.AutoMigrate(&models.ServicePerformed{})
@@ -303,7 +304,7 @@ func TestServices(t *testing.T) {
 
 		// Check if products stock are decreased
 		var sponge *models.Product
-		if db.Preload("StockEntries").First(&sponge, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&sponge, 1).Error != nil {
 			t.Error("Should retrieve product")
 		}
 
@@ -312,7 +313,7 @@ func TestServices(t *testing.T) {
 		}
 
 		var alcohol *models.Product
-		if db.Preload("StockEntries").First(&alcohol, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&alcohol, 1).Error != nil {
 			t.Error("Should retrieve product")
 		}
 

@@ -172,12 +172,13 @@ func performService(context *gin.Context) {
 		return
 	}
 
-	createEntries(performed)
+	createServiceEntries(performed)
+	reduceConsumptionStock(performed)
 
 	context.JSON(http.StatusOK, performed)
 }
 
-func createEntries(performed *models.ServicePerformed) {
+func createServiceEntries(performed *models.ServicePerformed) {
 	db, _ := database.GetConnection()
 
 	var service *models.Service
@@ -207,4 +208,18 @@ func createEntries(performed *models.ServicePerformed) {
 			},
 		})
 	}
+}
+
+func reduceConsumptionStock(performed *models.ServicePerformed) {
+	db, _ := database.GetConnection()
+
+	for _, item := range performed.Consumptions {
+		var product *models.Product
+		db.Joins("Company").Preload("StockEntries").First(&product, item.ProductID)
+
+		usages := product.Consume(item.Qty)
+		performed.StockUsages = append(performed.StockUsages, usages...)
+	}
+
+	db.Save(&performed)
 }

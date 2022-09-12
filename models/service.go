@@ -25,6 +25,7 @@ type ServicePerformed struct {
 	PaymentAccount      *Account
 	ReceivableAccountID *uint `json:"receivable_account_id"`
 	ReceivableAccount   *Account
+	StockUsages         []*StockUsage `gorm:"polymorphic:Source"`
 }
 
 type Consumption struct {

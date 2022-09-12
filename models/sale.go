@@ -11,8 +11,9 @@ type Sale struct {
 	Entries           []*Entry `gorm:"constraint:OnDelete:CASCADE"`
 	Customer          *Customer
 	Company           *Company
-	PaymentAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
-	ReceivableAccount *Account `gorm:"constraint:OnDelete:SET NULL;"`
+	PaymentAccount    *Account      `gorm:"constraint:OnDelete:SET NULL;"`
+	ReceivableAccount *Account      `gorm:"constraint:OnDelete:SET NULL;"`
+	StockUsages       []*StockUsage `gorm:"polymorphic:Source"`
 
 	CustomerID          uint `json:"customer_id" binding:"required"`
 	CompanyID           uint

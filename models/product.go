@@ -32,6 +32,35 @@ func (p *Product) Inventory() uint {
 	return inventory
 }
 
+func (p *Product) Consume(qty uint) []*StockUsage {
+	left := qty
+	var usages []*StockUsage
+
+	// Invert entries for LIFO
+	if p.Company.Stock == LIFO {
+		for i, j := 0, len(p.StockEntries)-1; i < j; i, j = i+1, j-1 {
+			p.StockEntries[i], p.StockEntries[j] = p.StockEntries[j], p.StockEntries[i]
+		}
+	}
+
+	for _, entry := range p.StockEntries {
+		qty := math.Min(float64(left), float64(entry.Qty))
+
+		usages = append(usages, &StockUsage{
+			Qty:          uint(qty),
+			StockEntryID: entry.ID,
+		})
+
+		left -= uint(qty)
+
+		if left <= 0 {
+			break
+		}
+	}
+
+	return usages
+}
+
 func (p *Product) Cost(qty uint) float64 {
 	cost := 0.0
 	left := qty
@@ -76,8 +105,8 @@ func (e *StockEntry) Stock() uint {
 type StockUsage struct {
 	gorm.Model
 	Qty          uint
-	SaleID       uint
-	Sale         *Sale `gorm:"constraint:OnDelete:CASCADE"`
+	SourceID     uint
+	SourceType   string
 	StockEntryID uint
 	StockEntry   *StockEntry `gorm:"constraint:OnDelete:CASCADE"`
 }

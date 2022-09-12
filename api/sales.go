@@ -73,20 +73,6 @@ func CreateAccountingEntries(data interface{}) {
 	}
 }
 
-func RestoreProductStock(sale *models.Sale) {
-	db, _ := database.GetConnection()
-
-	for _, item := range sale.Items {
-		var product *models.Product
-		db.Preload("StockEntries.StockUsages").First(&product, item.ProductID)
-
-		for _, entry := range product.StockEntries {
-			query := db.Where(&models.StockUsage{SaleID: sale.ID, StockEntryID: entry.ID})
-			query.Unscoped().Delete(&entry.StockUsages)
-		}
-	}
-}
-
 func ReduceProductStock(data interface{}) {
 	sale := data.(*models.Sale)
 	db, _ := database.GetConnection()
@@ -95,33 +81,11 @@ func ReduceProductStock(data interface{}) {
 		var product *models.Product
 		db.Joins("Company").Preload("StockEntries").First(&product, item.ProductID)
 
-		// Invert entries for LIFO
-		if product.Company.Stock == models.LIFO {
-			for i, j := 0, len(product.StockEntries)-1; i < j; i, j = i+1, j-1 {
-				product.StockEntries[i], product.StockEntries[j] = product.StockEntries[j], product.StockEntries[i]
-			}
-		}
-
-		left := item.Qty
-
-		for _, entry := range product.StockEntries {
-			if entry.Qty > left {
-				db.Create(&models.StockUsage{
-					Qty:          uint(left),
-					SaleID:       sale.ID,
-					StockEntryID: entry.ID,
-				})
-				break
-			} else {
-				db.Create(&models.StockUsage{
-					Qty:          entry.Qty,
-					SaleID:       sale.ID,
-					StockEntryID: entry.ID,
-				})
-			}
-			left -= entry.Qty
-		}
+		usages := product.Consume(item.Qty)
+		sale.StockUsages = append(sale.StockUsages, usages...)
 	}
+
+	db.Save(&sale)
 }
 
 func createSale(context *gin.Context) {
@@ -244,17 +208,21 @@ func updateSale(context *gin.Context) {
 
 	query := db.Scopes(models.FromCompany(companyID))
 
-	if query.Preload("Items").First(&sale, id).Error != nil {
+	if query.Preload("Items").Preload("StockUsages").First(&sale, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
 
+	// Remove current accounting entries
 	tx := db.Where(&models.Entry{SaleID: &sale.ID})
 	tx.Unscoped().Delete(&sale.Entries)
-
 	sale.Entries = []*models.Entry{}
 
-	RestoreProductStock(sale)
+	// Remove current stock usages
+	for _, usage := range sale.StockUsages {
+		db.Unscoped().Delete(&models.StockUsage{}, usage.ID)
+	}
+	sale.StockUsages = []*models.StockUsage{}
 
 	if err := context.ShouldBindJSON(&sale); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
@@ -294,7 +262,7 @@ func deleteSale(context *gin.Context) {
 		return
 	}
 
-	if db.Unscoped().Delete(&models.Sale{}, id).Error != nil {
+	if db.Unscoped().Select("StockUsages").Delete(&sale).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
