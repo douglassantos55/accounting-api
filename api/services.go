@@ -19,6 +19,7 @@ func RegisterServicesEndpoints(router *gin.Engine) {
 
 	group.POST("/performed", createPerformed)
 	group.PUT("/performed/:id", updatePerformed)
+	group.DELETE("/performed/:id", deletePerformed)
 }
 
 func createService(context *gin.Context) {
@@ -262,6 +263,37 @@ func updatePerformed(context *gin.Context) {
 	reduceConsumptionStock(performed)
 
 	context.JSON(http.StatusOK, performed)
+}
+
+func deletePerformed(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var performed *models.ServicePerformed
+	companyID := context.Value("CompanyID").(uint)
+
+	tx := db.Scopes(models.FromCompany(companyID))
+	if tx.First(&performed, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	tx = db.Unscoped().Select("Entries", "StockUsages", "Consumptions")
+	if tx.Delete(&performed).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	context.Status(http.StatusNoContent)
 }
 
 func createServiceEntries(performed *models.ServicePerformed) {

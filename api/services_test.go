@@ -609,6 +609,104 @@ func TestServices(t *testing.T) {
 		}
 	})
 
+	t.Run("Delete performed", func(t *testing.T) {
+		req := Delete(t, "/services/performed/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNoContent {
+			t.Errorf("Expected status %v, got %v", http.StatusNoContent, w.Code)
+		}
+
+		if db.First(&models.ServicePerformed{}, 1).Error == nil {
+			t.Error("Should have deleted performed service")
+		}
+
+		// Check if revenue account is increased
+		var rev *models.Account
+		if result := db.Preload("Transactions").First(&rev, 5); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if rev.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, rev.Balance())
+		}
+
+		// Check if payment account is increased
+		var pay *models.Account
+		if result := db.Preload("Transactions").First(&pay, cash.ID); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if pay.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, pay.Balance())
+		}
+
+		// Check if products inventory is reduced
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, 2).Error != nil {
+			t.Error("Should retrieve inventory account")
+		}
+
+		if inv.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, inv.Balance())
+		}
+
+		// Check if products stock are decreased
+		var sponge *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&sponge, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if sponge.Inventory() != 400 {
+			t.Errorf("Expected stock %v, got %v", 400, sponge.Inventory())
+		}
+
+		var alcohol *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&alcohol, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if alcohol.Inventory() != 400 {
+			t.Errorf("Expected stock %v, got %v", 400, alcohol.Inventory())
+		}
+	})
+
+	t.Run("Delete performed non-existent", func(t *testing.T) {
+		req := Delete(t, "/services/performed/1")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete performed invalid", func(t *testing.T) {
+		req := Delete(t, "/services/performed/astnoc")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
+	t.Run("Delete performed another company", func(t *testing.T) {
+		db.Create(&models.ServicePerformed{CompanyID: 2})
+		req := Delete(t, "/services/performed/2")
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusNotFound {
+			t.Errorf("Expected status %v, got %v", http.StatusNotFound, w.Code)
+		}
+	})
+
 	t.Run("Update non existent", func(t *testing.T) {
 		req := Put(t, "/services/4202", map[string]interface{}{
 			"name":               "Renting",
