@@ -16,7 +16,9 @@ func RegisterServicesEndpoints(router *gin.Engine) {
 	group.GET("/:id", viewService)
 	group.PUT("/:id", updateService)
 	group.DELETE("/:id", deleteService)
-	group.POST("/perform", performService)
+
+	group.POST("/performed", createPerformed)
+	group.PUT("/performed/:id", updatePerformed)
 }
 
 func createService(context *gin.Context) {
@@ -150,11 +152,25 @@ func deleteService(context *gin.Context) {
 	context.Status(http.StatusNoContent)
 }
 
-func performService(context *gin.Context) {
+func createPerformed(context *gin.Context) {
 	var performed *models.ServicePerformed
 	if err := context.ShouldBindJSON(&performed); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{
 			"error": err,
+		})
+		return
+	}
+
+	if performed.Paid && performed.PaymentAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrPaymentAccountMissing.Error(),
+		})
+		return
+	}
+
+	if !performed.Paid && performed.ReceivableAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrReceivableAccountMissing.Error(),
 		})
 		return
 	}
@@ -178,13 +194,83 @@ func performService(context *gin.Context) {
 	context.JSON(http.StatusOK, performed)
 }
 
+func updatePerformed(context *gin.Context) {
+	id, err := strconv.ParseUint(context.Param("id"), 10, 64)
+	if err != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	db, err := database.GetConnection()
+	if err != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	var performed *models.ServicePerformed
+	companyID := context.Value("CompanyID").(uint)
+
+	tx := db.Scopes(models.FromCompany(companyID))
+	if tx.Preload("Entries").Preload("StockUsages").First(&performed, id).Error != nil {
+		context.Status(http.StatusNotFound)
+		return
+	}
+
+	if err := context.ShouldBindJSON(&performed); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": err,
+		})
+		return
+	}
+
+	if performed.Paid && performed.PaymentAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrPaymentAccountMissing.Error(),
+		})
+		return
+	}
+
+	if !performed.Paid && performed.ReceivableAccountID == nil {
+		context.JSON(http.StatusBadRequest, gin.H{
+			"error": ErrReceivableAccountMissing.Error(),
+		})
+		return
+	}
+
+	// Remove current accounting entries
+	entryIDs := []uint{}
+	for _, entry := range performed.Entries {
+		entryIDs = append(entryIDs, entry.ID)
+	}
+	db.Unscoped().Delete(&performed.Entries, entryIDs)
+	performed.Entries = []*models.Entry{}
+
+	// Remove current stock usages
+	usageIDs := []uint{}
+	for _, usage := range performed.StockUsages {
+		usageIDs = append(usageIDs, usage.ID)
+	}
+	db.Unscoped().Delete(&performed.StockUsages, usageIDs)
+	performed.StockUsages = []*models.StockUsage{}
+
+	if db.Save(performed).Error != nil {
+		context.Status(http.StatusInternalServerError)
+		return
+	}
+
+	createServiceEntries(performed)
+	reduceConsumptionStock(performed)
+
+	context.JSON(http.StatusOK, performed)
+}
+
 func createServiceEntries(performed *models.ServicePerformed) {
 	db, _ := database.GetConnection()
 
 	var service *models.Service
 	db.First(&service, performed.ServiceID)
 
-	db.Create(&models.Entry{
+	performed.Entries = append(performed.Entries, &models.Entry{
 		Description: "Service performed",
 		CompanyID:   performed.CompanyID,
 		Transactions: []*models.Transaction{
@@ -199,7 +285,7 @@ func createServiceEntries(performed *models.ServicePerformed) {
 
 		cost := prod.Cost(consumption.Qty)
 
-		db.Create(&models.Entry{
+		performed.Entries = append(performed.Entries, &models.Entry{
 			Description: "Usage for service",
 			CompanyID:   performed.CompanyID,
 			Transactions: []*models.Transaction{
@@ -208,6 +294,8 @@ func createServiceEntries(performed *models.ServicePerformed) {
 			},
 		})
 	}
+
+	db.Save(performed)
 }
 
 func reduceConsumptionStock(performed *models.ServicePerformed) {

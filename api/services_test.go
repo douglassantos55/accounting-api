@@ -34,6 +34,13 @@ func TestServices(t *testing.T) {
 	db.Create(&models.Account{Name: "Inventory", Type: models.Asset, CompanyID: 1})
 	db.Create(&models.Account{Name: "Cost of Service", Type: models.Expense, CompanyID: 1})
 
+	cash := &models.Account{
+		CompanyID: 1,
+		Name:      "Cash",
+		Type:      models.Asset,
+	}
+	db.Create(cash)
+
 	router := api.GetRouter()
 
 	t.Run("Create", func(t *testing.T) {
@@ -181,7 +188,7 @@ func TestServices(t *testing.T) {
 
 		req := Put(t, "/services/1", map[string]interface{}{
 			"name":                       "General Cleaning",
-			"revenue_account_id":         4,
+			"revenue_account_id":         5,
 			"cost_of_service_account_id": 3,
 		})
 
@@ -205,8 +212,8 @@ func TestServices(t *testing.T) {
 			t.Errorf("Expected name %v, got %v", "General Cleaning", service.Name)
 		}
 
-		if service.RevenueAccountID != 4 {
-			t.Errorf("Expected account %v, got %v", 4, service.RevenueAccountID)
+		if service.RevenueAccountID != 5 {
+			t.Errorf("Expected account %v, got %v", 5, service.RevenueAccountID)
 		}
 	})
 
@@ -235,14 +242,8 @@ func TestServices(t *testing.T) {
 			},
 		})
 
-		cash := &models.Account{
-			CompanyID: 1,
-			Name:      "Cash",
-			Type:      models.Asset,
-		}
-		db.Create(cash)
-
-		req := Post(t, "/services/perform", map[string]interface{}{
+		req := Post(t, "/services/performed", map[string]interface{}{
+			"paid":                  true,
 			"value":                 122,
 			"service_id":            1,
 			"payment_account_id":    &cash.ID,
@@ -284,7 +285,7 @@ func TestServices(t *testing.T) {
 
 		// Check if revenue account is increased
 		var rev *models.Account
-		if result := db.Preload("Transactions").First(&rev, 4); result.Error != nil {
+		if result := db.Preload("Transactions").First(&rev, 5); result.Error != nil {
 			t.Error("Should retrieve revenue account", result.Error)
 		}
 
@@ -323,12 +324,167 @@ func TestServices(t *testing.T) {
 		}
 
 		var alcohol *models.Product
-		if db.Preload("StockEntries.StockUsages").First(&alcohol, 1).Error != nil {
+		if db.Preload("StockEntries.StockUsages").First(&alcohol, 2).Error != nil {
 			t.Error("Should retrieve product")
 		}
 
 		if alcohol.Inventory() != 390 {
 			t.Errorf("Expected stock %v, got %v", 390, alcohol.Inventory())
+		}
+	})
+
+	t.Run("Perform paid without payment account", func(t *testing.T) {
+		req := Post(t, "/services/performed", map[string]interface{}{
+			"paid":                  true,
+			"value":                 122,
+			"service_id":            1,
+			"payment_account_id":    nil,
+			"receivable_account_id": nil,
+			"consumptions": []map[string]interface{}{
+				{"product_id": 1, "qty": 10},
+				{"product_id": 2, "qty": 10},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrPaymentAccountMissing.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrPaymentAccountMissing, response["error"])
+		}
+	})
+
+	t.Run("Perform not paid without receivable account", func(t *testing.T) {
+		req := Post(t, "/services/performed", map[string]interface{}{
+			"paid":                  false,
+			"value":                 122,
+			"service_id":            1,
+			"payment_account_id":    nil,
+			"receivable_account_id": nil,
+			"consumptions": []map[string]interface{}{
+				{"product_id": 1, "qty": 10},
+				{"product_id": 2, "qty": 10},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if response["error"] != api.ErrReceivableAccountMissing.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrReceivableAccountMissing, response["error"])
+		}
+	})
+
+	t.Run("Update performed", func(t *testing.T) {
+		bank := &models.Account{Name: "Bank", Type: models.Asset, CompanyID: 1}
+		db.Create(bank)
+
+		req := Put(t, "/services/performed/1", map[string]interface{}{
+			"paid":                  true,
+			"value":                 222,
+			"service_id":            1,
+			"payment_account_id":    &bank.ID,
+			"receivable_account_id": nil,
+			"consumptions": []map[string]interface{}{
+				{"product_id": 1, "qty": 20},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var performed *models.ServicePerformed
+		if err := json.Unmarshal(w.Body.Bytes(), &performed); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if performed.Value != 222 {
+			t.Errorf("Expected value %v, got %v", 222, performed.Value)
+		}
+
+		if len(performed.Consumptions) != 1 {
+			t.Errorf("Expected %v item, got %v", 1, len(performed.Consumptions))
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if result := db.Preload("Transactions").First(&rev, 5); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if rev.Balance() != 222 {
+			t.Errorf("Expected balance %v, got %v", 222, rev.Balance())
+		}
+
+		// Check if cash account is updated
+		var prev *models.Account
+		if result := db.Preload("Transactions").First(&prev, cash.ID); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if prev.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, prev.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if result := db.Preload("Transactions").First(&pay, bank.ID); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if pay.Balance() != 222 {
+			t.Errorf("Expected balance %v, got %v", 222, pay.Balance())
+		}
+
+		// Check if products inventory is updated
+		var inv *models.Account
+		if db.Preload("Transactions").First(&inv, 2).Error != nil {
+			t.Error("Should retrieve inventory account")
+		}
+
+		if inv.Balance() != -60 {
+			t.Errorf("Expected balance %v, got %v", -60, inv.Balance())
+		}
+
+		// Check if products stock are updated
+		var sponge *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&sponge, 1).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if sponge.Inventory() != 380 {
+			t.Errorf("Expected stock %v, got %v", 380, sponge.Inventory())
+		}
+
+		var alcohol *models.Product
+		if db.Preload("StockEntries.StockUsages").First(&alcohol, 2).Error != nil {
+			t.Error("Should retrieve product")
+		}
+
+		if alcohol.Inventory() != 400 {
+			t.Errorf("Expected stock %v, got %v", 400, alcohol.Inventory())
 		}
 	})
 

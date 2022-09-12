@@ -15,6 +15,7 @@ type Service struct {
 
 type ServicePerformed struct {
 	gorm.Model
+	Paid                bool
 	Value               float64
 	ServiceID           uint `json:"service_id"`
 	Service             *Service
@@ -26,6 +27,7 @@ type ServicePerformed struct {
 	ReceivableAccountID *uint `json:"receivable_account_id"`
 	ReceivableAccount   *Account
 	StockUsages         []*StockUsage `gorm:"polymorphic:Source"`
+	Entries             []*Entry      `gorm:"polymorphic:Source"`
 }
 
 type Consumption struct {
