@@ -270,12 +270,19 @@ func createServiceEntries(performed *models.ServicePerformed) {
 	var service *models.Service
 	db.First(&service, performed.ServiceID)
 
+	var account uint
+	if performed.Paid {
+		account = *performed.PaymentAccountID
+	} else {
+		account = *performed.ReceivableAccountID
+	}
+
 	performed.Entries = append(performed.Entries, &models.Entry{
 		Description: "Service performed",
 		CompanyID:   performed.CompanyID,
 		Transactions: []*models.Transaction{
 			{AccountID: service.RevenueAccountID, Value: performed.Value},
-			{AccountID: *performed.PaymentAccountID, Value: performed.Value},
+			{AccountID: account, Value: performed.Value},
 		},
 	})
 

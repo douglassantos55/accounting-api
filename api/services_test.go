@@ -488,6 +488,127 @@ func TestServices(t *testing.T) {
 		}
 	})
 
+	t.Run("Update to not paid", func(t *testing.T) {
+		receivable := &models.Account{Name: "Receivable", Type: models.Asset, CompanyID: 1}
+		db.Create(receivable)
+
+		req := Put(t, "/services/performed/1", map[string]interface{}{
+			"paid":                  false,
+			"value":                 422,
+			"service_id":            1,
+			"payment_account_id":    nil,
+			"receivable_account_id": &receivable.ID,
+			"consumptions": []map[string]interface{}{
+				{"product_id": 1, "qty": 20},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var performed *models.ServicePerformed
+		if err := json.Unmarshal(w.Body.Bytes(), &performed); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if performed.PaymentAccountID != nil {
+			t.Errorf("Should not have payment account, got %v", *performed.PaymentAccountID)
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if result := db.Preload("Transactions").First(&rev, 5); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if rev.Balance() != 422 {
+			t.Errorf("Expected balance %v, got %v", 422, rev.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if result := db.Preload("Transactions").First(&pay, 6); result.Error != nil {
+			t.Error("Should retrieve payment account", result.Error)
+		}
+
+		if pay.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, pay.Balance())
+		}
+
+		// Check if receivable account is updated
+		var recv *models.Account
+		if result := db.Preload("Transactions").First(&recv, receivable.ID); result.Error != nil {
+			t.Error("Should retrieve receivable account", result.Error)
+		}
+
+		if recv.Balance() != 422 {
+			t.Errorf("Expected balance %v, got %v", 422, recv.Balance())
+		}
+	})
+
+	t.Run("Update to paid", func(t *testing.T) {
+		req := Put(t, "/services/performed/1", map[string]interface{}{
+			"paid":                  true,
+			"value":                 522,
+			"service_id":            1,
+			"payment_account_id":    &cash.ID,
+			"receivable_account_id": nil,
+			"consumptions": []map[string]interface{}{
+				{"product_id": 1, "qty": 20},
+			},
+		})
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status %v, got %v", http.StatusOK, w.Code)
+		}
+
+		var performed *models.ServicePerformed
+		if err := json.Unmarshal(w.Body.Bytes(), &performed); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if performed.ReceivableAccountID != nil {
+			t.Errorf("Should not have receivable account, got %v", *performed.ReceivableAccountID)
+		}
+
+		// Check if revenue account is updated
+		var rev *models.Account
+		if result := db.Preload("Transactions").First(&rev, 5); result.Error != nil {
+			t.Error("Should retrieve revenue account", result.Error)
+		}
+
+		if rev.Balance() != 522 {
+			t.Errorf("Expected balance %v, got %v", 522, rev.Balance())
+		}
+
+		// Check if payment account is updated
+		var pay *models.Account
+		if result := db.Preload("Transactions").First(&pay, cash.ID); result.Error != nil {
+			t.Error("Should retrieve payment account", result.Error)
+		}
+
+		if pay.Balance() != 522 {
+			t.Errorf("Expected balance %v, got %v", 522, pay.Balance())
+		}
+
+		// Check if receivable account is updated
+		var recv *models.Account
+		if result := db.Preload("Transactions").First(&recv, 7); result.Error != nil {
+			t.Error("Should retrieve receivable account", result.Error)
+		}
+
+		if recv.Balance() != 0 {
+			t.Errorf("Expected balance %v, got %v", 0, recv.Balance())
+		}
+	})
+
 	t.Run("Update non existent", func(t *testing.T) {
 		req := Put(t, "/services/4202", map[string]interface{}{
 			"name":               "Renting",
