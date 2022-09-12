@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,6 +13,12 @@ var router *gin.Engine
 func GetRouter() *gin.Engine {
 	if router == nil {
 		router = gin.Default()
+
+		config := cors.DefaultConfig()
+		config.AllowAllOrigins = true
+		config.AddAllowHeaders("CompanyID")
+
+		router.Use(cors.New(config))
 
 		router.Use(func(c *gin.Context) {
 			companyID, err := strconv.ParseUint(c.Request.Header.Get("CompanyID"), 10, 64)
