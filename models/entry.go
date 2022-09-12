@@ -10,8 +10,8 @@ type Entry struct {
 	Description  string    `binding:"required"`
 	PurchaseID   *uint     `json:"purchase_id"`
 	Purchase     *Purchase `gorm:"constraint:OnDelete:CASCADE;"`
-	SaleID       *uint
-	Sale         *Sale
+	SourceID     uint
+	SourceType   string
 	CompanyID    uint
 	Company      *Company       `gorm:"constraint:OnDelete:CASCADE"`
 	Transactions []*Transaction `binding:"min=2" gorm:"constraint:OnDelete:CASCADE;"`

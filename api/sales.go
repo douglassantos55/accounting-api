@@ -64,13 +64,14 @@ func CreateAccountingEntries(data interface{}) {
 			})
 		}
 
-		db.Create(&models.Entry{
-			SaleID:       &sale.ID,
+		sale.Entries = append(sale.Entries, &models.Entry{
 			Description:  "Sale of product",
 			CompanyID:    sale.CompanyID,
 			Transactions: transactions,
 		})
 	}
+
+	db.Save(&sale)
 }
 
 func ReduceProductStock(data interface{}) {
@@ -207,21 +208,27 @@ func updateSale(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	query := db.Scopes(models.FromCompany(companyID))
+	query = query.Preload("Items").Preload("Entries").Preload("StockUsages")
 
-	if query.Preload("Items").Preload("StockUsages").First(&sale, id).Error != nil {
+	if query.First(&sale, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
 
 	// Remove current accounting entries
-	tx := db.Where(&models.Entry{SaleID: &sale.ID})
-	tx.Unscoped().Delete(&sale.Entries)
+	entryIDs := []uint{}
+	for _, entry := range sale.Entries {
+		entryIDs = append(entryIDs, entry.ID)
+	}
+	db.Unscoped().Delete(&sale.Entries, entryIDs)
 	sale.Entries = []*models.Entry{}
 
 	// Remove current stock usages
+	usageIDs := []uint{}
 	for _, usage := range sale.StockUsages {
-		db.Unscoped().Delete(&models.StockUsage{}, usage.ID)
+		usageIDs = append(usageIDs, usage.ID)
 	}
+	db.Unscoped().Delete(&sale.StockUsages, usageIDs)
 	sale.StockUsages = []*models.StockUsage{}
 
 	if err := context.ShouldBindJSON(&sale); err != nil {
@@ -262,7 +269,7 @@ func deleteSale(context *gin.Context) {
 		return
 	}
 
-	if db.Unscoped().Select("StockUsages").Delete(&sale).Error != nil {
+	if db.Unscoped().Select("StockUsages", "Entries").Delete(&sale).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}

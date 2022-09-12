@@ -8,7 +8,7 @@ type Sale struct {
 	gorm.Model
 	Paid              bool
 	Items             []*Item  `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1"`
-	Entries           []*Entry `gorm:"constraint:OnDelete:CASCADE"`
+	Entries           []*Entry `gorm:"polymorphic:Source"`
 	Customer          *Customer
 	Company           *Company
 	PaymentAccount    *Account      `gorm:"constraint:OnDelete:SET NULL;"`
