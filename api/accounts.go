@@ -29,7 +29,10 @@ func listAccounts(context *gin.Context) {
 	var items []*models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).Find(&items).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("Parent").Preload("Children")
+
+	if tx.Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -54,7 +57,10 @@ func viewAccount(context *gin.Context) {
 	var account *models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&account, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("Parent").Preload("Children")
+
+	if tx.First(&account, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -82,6 +88,7 @@ func createAccount(context *gin.Context) {
 		return
 	}
 
+	db.Joins("Parent").Preload("Children").First(&account)
 	context.JSON(http.StatusOK, account)
 }
 
@@ -117,6 +124,7 @@ func updateAccount(context *gin.Context) {
 		return
 	}
 
+	db.Joins("Parent").Preload("Children").First(&account)
 	context.JSON(http.StatusOK, account)
 }
 

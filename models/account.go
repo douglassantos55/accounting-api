@@ -23,14 +23,14 @@ const (
 
 type Account struct {
 	gorm.Model
-	Name         string      `binding:"required"`
-	Type         AccountType `binding:"required"`
-	ParentID     *uint       `json:"parent_id" binding:"omitempty"`
-	Parent       *Account
-	CompanyID    uint
-	Company      *Company
-	Children     []*Account     `gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
-	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
+	Name         string         `json:"name" binding:"required"`
+	Type         AccountType    `json:"type" binding:"required"`
+	ParentID     *uint          `json:"parent_id" binding:"omitempty"`
+	Parent       *Account       `json:"parent"`
+	CompanyID    uint           `json:"-"`
+	Company      *Company       `json:"-"`
+	Children     []*Account     `json:"children" gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
+	Transactions []*Transaction `json:"-" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (a Account) Balance() float64 {

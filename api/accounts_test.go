@@ -126,6 +126,10 @@ func TestAccountsEndpoint(t *testing.T) {
 		if account.ParentID == nil {
 			t.Error("Should have a parent account")
 		}
+
+		if account.Parent == nil {
+			t.Error("Should have a parent account")
+		}
 	})
 
 	t.Run("Create with invalid parent", func(t *testing.T) {
@@ -171,6 +175,10 @@ func TestAccountsEndpoint(t *testing.T) {
 
 		if account.ParentID != nil {
 			t.Errorf("Expected no parent, got %v", account.ParentID)
+		}
+
+		if account.Parent != nil {
+			t.Errorf("Expected no parent, got %v", account.Parent)
 		}
 	})
 
