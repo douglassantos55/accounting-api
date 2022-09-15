@@ -30,9 +30,9 @@ func listAccounts(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	tx := db.Scopes(models.FromCompany(companyID))
-	tx = tx.Joins("Parent").Preload("Children")
+	tx = tx.Preload("Children")
 
-	if tx.Find(&items).Error != nil {
+	if tx.Where("parent_id IS NULL").Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
