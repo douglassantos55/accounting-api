@@ -13,7 +13,7 @@ const (
 )
 
 const (
-	Asset AccountType = iota
+	Asset AccountType = iota + 1
 	Liability
 	Equity
 	Dividend

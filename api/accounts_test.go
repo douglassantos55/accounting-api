@@ -65,7 +65,7 @@ func TestAccountsEndpoint(t *testing.T) {
 
 		req := Post(t, "/accounts", map[string]interface{}{
 			"name":      "Payables",
-			"type":      1,
+			"type":      models.Liability,
 			"parent_id": nil,
 		})
 		router.ServeHTTP(w, req)
@@ -97,7 +97,7 @@ func TestAccountsEndpoint(t *testing.T) {
 
 		req := Post(t, "/accounts", map[string]interface{}{
 			"name":      "Suppliers",
-			"type":      1,
+			"type":      models.Liability,
 			"parent_id": 1,
 		})
 		router.ServeHTTP(w, req)

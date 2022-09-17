@@ -29,10 +29,7 @@ func listAccounts(context *gin.Context) {
 	var items []*models.Account
 	companyID := context.Value("CompanyID").(uint)
 
-	tx := db.Scopes(models.FromCompany(companyID))
-	tx = tx.Preload("Children")
-
-	if tx.Where("parent_id IS NULL").Find(&items).Error != nil {
+	if db.Scopes(models.FromCompany(companyID)).Find(&items).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
