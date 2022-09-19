@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 var router *gin.Engine
@@ -13,6 +15,8 @@ var router *gin.Engine
 func GetRouter() *gin.Engine {
 	if router == nil {
 		router = gin.Default()
+
+		registerValidation()
 
 		config := cors.DefaultConfig()
 		config.AllowAllOrigins = true
@@ -44,4 +48,10 @@ func registerRoutes(router *gin.Engine) {
 	RegisterEntriesEndpoint(router)
 	RegisterSalesEndpoints(router)
 	RegisterServicesEndpoints(router)
+}
+
+func registerValidation() {
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("cpf_cnpj", validCpfCpnj)
+	}
 }

@@ -22,16 +22,7 @@ func RegisterVendorEndpoints(router *gin.Engine) {
 func createVendor(context *gin.Context) {
 	var vendor *models.Vendor
 	if err := context.ShouldBindJSON(&vendor); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := IsCNPJ(vendor.Cnpj); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -115,16 +106,7 @@ func updateVendor(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&vendor); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := IsCNPJ(vendor.Cnpj); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 

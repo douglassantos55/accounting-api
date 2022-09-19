@@ -22,14 +22,7 @@ func RegisterCustomerEndpoints(router *gin.Engine) {
 func createCustomer(context *gin.Context) {
 	var customer *models.Customer
 	if err := context.ShouldBindJSON(&customer); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := IsCPF(customer.Cpf); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -118,14 +111,7 @@ func updateCustomer(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&customer); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err})
-		return
-	}
-
-	if err := IsCPF(customer.Cpf); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 

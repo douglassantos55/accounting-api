@@ -83,15 +83,6 @@ func TestVendors(t *testing.T) {
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
-
-		var response map[string]string
-		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-			t.Error("Could not parse error", err)
-		}
-
-		if response["error"] != api.ErrInvalidCNPJ.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrInvalidCNPJ, response["error"])
-		}
 	})
 
 	t.Run("Address not required", func(t *testing.T) {
@@ -254,15 +245,6 @@ func TestVendors(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
-		}
-
-		var response map[string]string
-		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
-			t.Error("Could not parse error", err)
-		}
-
-		if response["error"] != api.ErrInvalidCNPJ.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrInvalidCNPJ, response["error"])
 		}
 	})
 
