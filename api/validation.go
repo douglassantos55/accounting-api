@@ -3,8 +3,28 @@ package api
 import (
 	"fmt"
 
+	"example.com/accounting/database"
 	"github.com/go-playground/validator/v10"
 )
+
+var databaseUnique validator.Func = func(fl validator.FieldLevel) bool {
+	db, err := database.GetConnection()
+	if err != nil {
+		return false
+	}
+
+	field := fl.FieldName()
+	entity := fl.Parent().Interface()
+
+	result := map[string]interface{}{}
+	tx := db.Model(entity).Where(entity, field).Not(entity, "ID")
+
+	if result := tx.First(&result); result.RowsAffected != 0 {
+		return false
+	}
+
+	return true
+}
 
 var validCpfCpnj validator.Func = func(fl validator.FieldLevel) bool {
 	value := fl.Field().String()

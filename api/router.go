@@ -53,5 +53,6 @@ func registerRoutes(router *gin.Engine) {
 func registerValidation() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("cpf_cnpj", validCpfCpnj)
+		v.RegisterValidation("unique", databaseUnique)
 	}
 }
