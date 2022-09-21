@@ -113,8 +113,8 @@ type StockUsage struct {
 
 type Vendor struct {
 	gorm.Model
-	Name      string
-	Cnpj      string `binding:"cpf_cnpj"`
+	Name      string `binding:"required"`
+	Cnpj      string `binding:"required,cpf_cnpj,unique"`
 	CompanyID uint
 	Company   *Company
 	Address   *Address `gorm:"embedded"`
