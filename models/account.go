@@ -23,13 +23,13 @@ const (
 
 type Account struct {
 	gorm.Model
-	Name         string         `json:"name" binding:"required"`
-	Type         AccountType    `json:"type" binding:"required"`
-	ParentID     *uint          `json:"parent_id" binding:"omitempty"`
-	Parent       *Account       `json:"parent"`
+	Name         string      `binding:"required"`
+	Type         AccountType `binding:"required"`
+	ParentID     *uint       `binding:"omitempty"`
+	Parent       *Account
 	CompanyID    uint           `json:"-"`
 	Company      *Company       `json:"-"`
-	Children     []*Account     `json:"children" gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
+	Children     []*Account     `gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
 	Transactions []*Transaction `json:"-" gorm:"constraint:OnDelete:CASCADE;"`
 }
 

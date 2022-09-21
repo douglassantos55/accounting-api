@@ -68,7 +68,7 @@ func viewAccount(context *gin.Context) {
 func createAccount(context *gin.Context) {
 	var account *models.Account
 	if err := context.ShouldBindJSON(&account); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -112,7 +112,7 @@ func updateAccount(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&account); err != nil {
-		context.JSON(http.StatusBadRequest, err)
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
