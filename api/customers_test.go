@@ -223,8 +223,17 @@ func TestCustomersEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusInternalServerError {
-			t.Errorf("Expected status %v, got %v", http.StatusInternalServerError, w.Code)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
+		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if _, ok := response["Email"]; !ok {
+			t.Errorf("Expected error, got %v", response)
 		}
 	})
 

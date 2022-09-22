@@ -64,9 +64,9 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Post(t, "/accounts", map[string]interface{}{
-			"name":      "Payables",
-			"type":      models.Liability,
-			"parent_id": nil,
+			"Name":     "Payables",
+			"Type":     models.Liability,
+			"ParentID": nil,
 		})
 		router.ServeHTTP(w, req)
 
@@ -96,9 +96,9 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Post(t, "/accounts", map[string]interface{}{
-			"name":      "Suppliers",
-			"type":      models.Liability,
-			"parent_id": 1,
+			"Name":     "Suppliers",
+			"Type":     models.Liability,
+			"ParentID": 1,
 		})
 		router.ServeHTTP(w, req)
 
@@ -136,9 +136,9 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Post(t, "/accounts", map[string]interface{}{
-			"name":      "Others",
-			"type":      1,
-			"parent_id": 22,
+			"Name":     "Others",
+			"Type":     1,
+			"ParentID": 22,
 		})
 		router.ServeHTTP(w, req)
 
@@ -151,8 +151,8 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Put(t, "/accounts/2", map[string]interface{}{
-			"name":      "Suppliers Payable",
-			"parent_id": nil,
+			"Name":     "Suppliers Payable",
+			"ParentID": nil,
 		})
 		router.ServeHTTP(w, req)
 
@@ -186,7 +186,7 @@ func TestAccountsEndpoint(t *testing.T) {
 		w := httptest.NewRecorder()
 
 		req := Put(t, "/accounts/2444", map[string]interface{}{
-			"name": "Suppliers Payable",
+			"Name": "Suppliers Payable",
 		})
 
 		router.ServeHTTP(w, req)
@@ -198,7 +198,7 @@ func TestAccountsEndpoint(t *testing.T) {
 
 	t.Run("Update without account", func(t *testing.T) {
 		req := Put(t, "/accounts/", map[string]interface{}{
-			"name": "Suppliers Payable",
+			"Name": "Suppliers Payable",
 		})
 
 		w := httptest.NewRecorder()
