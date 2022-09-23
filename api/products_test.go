@@ -47,12 +47,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Create", func(t *testing.T) {
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 1",
-			"price":                   53.54,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    3,
+			"Name":                "Product 1",
+			"Price":               53.54,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -82,12 +82,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Required revenue account", func(t *testing.T) {
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 1",
-			"price":                   53.54,
-			"purchasable":             true,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    3,
+			"Name":                "Product 1",
+			"Price":               53.54,
+			"Purchasable":         true,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -102,19 +102,19 @@ func TestProducts(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrRevenueAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrRevenueAccountMissing.Error(), response["error"])
+		if _, ok := response["RevenueAccountID"]; !ok {
+			t.Error("Expected error")
 		}
 	})
 
 	t.Run("Required cost of sale account", func(t *testing.T) {
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 1",
-			"price":                   53.54,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Product 1",
+			"Price":               53.54,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -129,19 +129,19 @@ func TestProducts(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrCostOfSaleAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrCostOfSaleAccountMissing.Error(), response["error"])
+		if _, ok := response["CostOfSaleAccountID"]; !ok {
+			t.Error("Expected error")
 		}
 	})
 
-	t.Run("Required inventory account", func(t *testing.T) {
+	t.Run("Required inventory account (purchasable)", func(t *testing.T) {
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 1",
-			"price":                   53.54,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    "",
+			"Name":                "Product 1",
+			"Price":               53.54,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  0,
 		})
 
 		w := httptest.NewRecorder()
@@ -151,30 +151,51 @@ func TestProducts(t *testing.T) {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
 
-		req = Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 1",
-			"price":                   53.54,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    nil,
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if _, ok := response["InventoryAccountID"]; !ok {
+			t.Error("Expected error")
+		}
+	})
+
+	t.Run("Required inventory account (non purchasable)", func(t *testing.T) {
+		req := Post(t, "/products", map[string]interface{}{
+			"Name":                "Product 1",
+			"Price":               53.54,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  0,
 		})
 
+		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if _, ok := response["InventoryAccountID"]; !ok {
+			t.Error("Expected error")
+		}
 	})
 
 	t.Run("Create non purchasable", func(t *testing.T) {
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 2",
-			"price":                   153.54,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Product 2",
+			"Price":               153.54,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -288,12 +309,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Update non purchasable", func(t *testing.T) {
 		req := Put(t, "/products/1", map[string]interface{}{
-			"name":                    "Edited product",
-			"price":                   63.64,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Edited product",
+			"Price":               63.64,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -323,12 +344,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Update required revenue account", func(t *testing.T) {
 		req := Put(t, "/products/2", map[string]interface{}{
-			"name":                    "Edited product 2",
-			"price":                   63.64,
-			"purchasable":             true,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    3,
+			"Name":                "Edited product 2",
+			"Price":               63.64,
+			"Purchasable":         true,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -343,19 +364,19 @@ func TestProducts(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrRevenueAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrRevenueAccountMissing.Error(), response["error"])
+		if _, ok := response["RevenueAccountID"]; !ok {
+			t.Error("Expected error")
 		}
 	})
 
 	t.Run("Update required cost of sale account", func(t *testing.T) {
 		req := Put(t, "/products/2", map[string]interface{}{
-			"name":                    "Edited product 2",
-			"price":                   63.64,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Edited product 2",
+			"Price":               63.64,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -370,19 +391,19 @@ func TestProducts(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrCostOfSaleAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrCostOfSaleAccountMissing.Error(), response["error"])
+		if _, ok := response["CostOfSaleAccountID"]; !ok {
+			t.Error("Expected error")
 		}
 	})
 
 	t.Run("Update required inventory account", func(t *testing.T) {
 		req := Put(t, "/products/2", map[string]interface{}{
-			"name":                    "Edited product 2",
-			"price":                   63.64,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    "",
+			"Name":                "Edited product 2",
+			"Price":               63.64,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  0,
 		})
 
 		w := httptest.NewRecorder()
@@ -391,16 +412,25 @@ func TestProducts(t *testing.T) {
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
 		}
+
+		var response map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
+			t.Error("Failed parsing JSON", err)
+		}
+
+		if _, ok := response["InventoryAccountID"]; !ok {
+			t.Error("Expected error")
+		}
 	})
 
 	t.Run("Update non existent", func(t *testing.T) {
 		req := Put(t, "/products/51515", map[string]interface{}{
-			"name":                    "Edited product",
-			"price":                   63.64,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Edited product",
+			"Price":               63.64,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -413,12 +443,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Update invalid", func(t *testing.T) {
 		req := Put(t, "/products/aoeu", map[string]interface{}{
-			"name":                    "Edited product",
-			"price":                   63.64,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Edited product",
+			"Price":               63.64,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -431,12 +461,12 @@ func TestProducts(t *testing.T) {
 
 	t.Run("Update from another company", func(t *testing.T) {
 		req := Put(t, "/products/3", map[string]interface{}{
-			"name":                    "Edited product",
-			"price":                   63.64,
-			"purchasable":             false,
-			"revenue_account_id":      nil,
-			"cost_of_sale_account_id": nil,
-			"inventory_account_id":    3,
+			"Name":                "Edited product",
+			"Price":               63.64,
+			"Purchasable":         false,
+			"RevenueAccountID":    nil,
+			"CostOfSaleAccountID": nil,
+			"InventoryAccountID":  3,
 		})
 
 		w := httptest.NewRecorder()
@@ -506,13 +536,13 @@ func TestProducts(t *testing.T) {
 		})
 
 		req := Post(t, "/products", map[string]interface{}{
-			"name":                    "Product 4",
-			"price":                   253.24,
-			"purchasable":             true,
-			"revenue_account_id":      1,
-			"cost_of_sale_account_id": 2,
-			"inventory_account_id":    3,
-			"vendor_id":               1,
+			"Name":                "Product 4",
+			"Price":               253.24,
+			"Purchasable":         true,
+			"RevenueAccountID":    1,
+			"CostOfSaleAccountID": 2,
+			"InventoryAccountID":  3,
+			"VendorID":            1,
 		})
 
 		w := httptest.NewRecorder()

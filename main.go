@@ -19,6 +19,7 @@ func main() {
 		&models.Customer{},
 		&models.Company{},
 		&models.Vendor{},
+		&models.Product{},
 	)
 
 	router := api.GetRouter()

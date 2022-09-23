@@ -28,16 +28,7 @@ func RegisterProductEndpoints(router *gin.Engine) {
 func createProduct(context *gin.Context) {
 	var product *models.Product
 	if err := context.ShouldBindJSON(&product); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := validateAccounts(product); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -54,21 +45,10 @@ func createProduct(context *gin.Context) {
 		return
 	}
 
+	tx := db.Joins("InventoryAccount").Joins("Vendor")
+	tx = tx.Joins("RevenueAccount").Joins("CostOfSaleAccount").First(&product)
+
 	context.JSON(http.StatusOK, product)
-}
-
-func validateAccounts(product *models.Product) error {
-	if product.Purchasable {
-		if product.RevenueAccountID == nil {
-			return ErrRevenueAccountMissing
-		}
-
-		if product.CostOfSaleAccountID == nil {
-			return ErrCostOfSaleAccountMissing
-		}
-	}
-
-	return nil
 }
 
 func listProducts(context *gin.Context) {
@@ -81,7 +61,11 @@ func listProducts(context *gin.Context) {
 	var products []*models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).Find(&products).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("InventoryAccount").Joins("Vendor")
+	tx = tx.Joins("RevenueAccount").Joins("CostOfSaleAccount")
+
+	if tx.Find(&products).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -105,7 +89,11 @@ func viewProduct(context *gin.Context) {
 	var product *models.Product
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&product, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = db.Joins("InventoryAccount").Joins("Vendor")
+	tx = tx.Joins("RevenueAccount").Joins("CostOfSaleAccount")
+
+	if tx.First(&product, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -135,16 +123,7 @@ func updateProduct(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&product); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if err := validateAccounts(&product); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -152,6 +131,9 @@ func updateProduct(context *gin.Context) {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
+
+	tx := db.Joins("InventoryAccount").Joins("Vendor")
+	tx = tx.Joins("RevenueAccount").Joins("CostOfSaleAccount").First(&product)
 
 	context.JSON(http.StatusOK, product)
 }

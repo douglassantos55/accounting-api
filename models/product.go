@@ -11,17 +11,17 @@ type Product struct {
 	Name                string  `binding:"required"`
 	Price               float64 `binding:"required"`
 	Purchasable         bool
-	RevenueAccountID    *uint         `json:"revenue_account_id"`
-	RevenueAccount      *Account      `gorm:"constraint:OnDelete:SET NULL;"`
-	CostOfSaleAccountID *uint         `json:"cost_of_sale_account_id"`
-	CostOfSaleAccount   *Account      `gorm:"constraint:OnDelete:SET NULL;"`
-	InventoryAccountID  uint          `json:"inventory_account_id" binding:"required"`
-	InventoryAccount    *Account      `gorm:"constraint:OnDelete:SET NULL;"`
-	VendorID            *uint         `json:"vendor_id"`
+	RevenueAccountID    *uint    `binding:"required_if=Purchasable true"`
+	RevenueAccount      *Account `gorm:"constraint:OnDelete:SET NULL;"`
+	CostOfSaleAccountID *uint    `binding:"required_if=Purchasable true"`
+	CostOfSaleAccount   *Account `gorm:"constraint:OnDelete:SET NULL;"`
+	InventoryAccountID  uint     `binding:"required"`
+	InventoryAccount    *Account `gorm:"constraint:OnDelete:SET NULL;"`
+	VendorID            *uint
 	Vendor              *Vendor       `gorm:"constraint:OnDelete:SET NULL;"`
-	StockEntries        []*StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
-	CompanyID           uint
-	Company             *Company
+	StockEntries        []*StockEntry `json:"-" gorm:"constraint:OnDelete:CASCADE;"`
+	CompanyID           uint          `json:"-"`
+	Company             *Company      `json:"-"`
 }
 
 func (p *Product) Inventory() uint {
