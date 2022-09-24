@@ -5,9 +5,9 @@ import "gorm.io/gorm"
 type Service struct {
 	gorm.Model
 	Name                   string `binding:"required"`
-	RevenueAccountID       uint   `json:"revenue_account_id" binding:"required"`
+	RevenueAccountID       uint   `binding:"required"`
 	RevenueAccount         *Account
-	CostOfServiceAccountID uint `json:"cost_of_service_account_id" binding:"required"`
+	CostOfServiceAccountID uint `binding:"required"`
 	CostOfServiceAccount   *Account
 	CompanyID              uint
 	Company                *Company

@@ -25,9 +25,7 @@ func RegisterServicesEndpoints(router *gin.Engine) {
 func createService(context *gin.Context) {
 	var service *models.Service
 	if err := context.ShouldBindJSON(&service); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -44,6 +42,7 @@ func createService(context *gin.Context) {
 		return
 	}
 
+	db.Joins("RevenueAccount").Joins("CostOfServiceAccount").First(&service)
 	context.JSON(http.StatusOK, service)
 }
 
@@ -57,7 +56,10 @@ func listServices(context *gin.Context) {
 	var services []*models.Service
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).Find(&services).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("RevenueAccount").Joins("CostOfServiceAccount")
+
+	if tx.Find(&services).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -81,7 +83,10 @@ func viewService(context *gin.Context) {
 	var service *models.Service
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&service, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("RevenueAccount").Joins("CostOfServiceAccount")
+
+	if tx.First(&service, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -122,6 +127,7 @@ func updateService(context *gin.Context) {
 		return
 	}
 
+	db.Joins("RevenueAccount").Joins("CostOfServiceAccount").First(&service)
 	context.JSON(http.StatusOK, service)
 }
 
