@@ -11,14 +11,14 @@ type Purchase struct {
 	Qty              uint    `binding:"required"`
 	Price            float64 `binding:"required"`
 	Paid             bool
-	PaymentDate      time.Time `json:"payment_date"`
+	PaymentDate      time.Time `binding:"required_if=Paid true"`
 	CompanyID        uint
 	Company          *Company
-	PayableAccountID *uint    `json:"payable_account_id"`
+	PayableAccountID *uint    `binding:"required_if=Paid false"`
 	PayableAccount   *Account `gorm:"foreignKey:PayableAccountID;constraint:OnDelete:SET NULL;"`
-	PaymentAccountID *uint    `json:"payment_account_id"`
+	PaymentAccountID *uint    `binding:"required_if=Paid true"`
 	PaymentAccount   *Account `gorm:"foreignKey:PaymentAccountID;constraint:OnDelete:SET NULL;"`
-	ProductID        uint     `json:"product_id" binding:"required"`
+	ProductID        uint     `binding:"required"`
 	Product          *Product `gorm:"constraint:OnDelete:CASCADE;"`
 	StockEntryID     *uint
 	StockEntry       *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`

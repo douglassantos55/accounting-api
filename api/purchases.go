@@ -152,23 +152,7 @@ func UpdateAccountingEntry(data interface{}) {
 func createPurchase(context *gin.Context) {
 	var purchase *models.Purchase
 	if err := context.ShouldBindJSON(&purchase); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if purchase.Paid && purchase.PaymentAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPaymentAccountMissing,
-		})
-		return
-	}
-
-	if !purchase.Paid && purchase.PayableAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPayableAccountMissing,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -200,7 +184,10 @@ func listPurchases(context *gin.Context) {
 	var purchases []models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).Find(&purchases).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount")
+
+	if tx.Find(&purchases).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -224,7 +211,10 @@ func viewPurchase(context *gin.Context) {
 	var purchase models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&purchase, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	tx = tx.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount")
+
+	if tx.First(&purchase, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}

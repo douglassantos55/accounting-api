@@ -21,7 +21,13 @@ func main() {
 		&models.Vendor{},
 		&models.Product{},
 		&models.Service{},
+		&models.Purchase{},
+		&models.StockEntry{},
+		&models.Transaction{},
+		&models.Entry{},
 	)
+
+	api.RegisterEvents()
 
 	router := api.GetRouter()
 	log.Fatal(router.Run())

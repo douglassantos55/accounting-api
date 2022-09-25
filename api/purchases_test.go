@@ -89,13 +89,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Create without payment account", func(t *testing.T) {
 		req := Post(t, "/purchases", map[string]interface{}{
-			"qty":                5,
-			"price":              155.75,
-			"paid":               true,
-			"product_id":         1,
-			"payment_date":       time.Now(),
-			"payment_account_id": nil,
-			"payable_account_id": nil,
+			"Qty":              5,
+			"Price":            155.75,
+			"Paid":             true,
+			"ProductID":        1,
+			"PaymentDate":      time.Now(),
+			"PaymentAccountID": nil,
+			"PayableAccountID": nil,
 		})
 
 		w := httptest.NewRecorder()
@@ -108,13 +108,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Create without payable account", func(t *testing.T) {
 		req := Post(t, "/purchases", map[string]interface{}{
-			"qty":                5,
-			"price":              155.75,
-			"paid":               false,
-			"product_id":         1,
-			"payment_date":       nil,
-			"payment_account_id": nil,
-			"payable_account_id": nil,
+			"Qty":              5,
+			"Price":            155.75,
+			"Paid":             false,
+			"ProductID":        1,
+			"PaymentDate":      nil,
+			"PaymentAccountID": nil,
+			"PayableAccountID": nil,
 		})
 
 		w := httptest.NewRecorder()
@@ -127,13 +127,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Create paid", func(t *testing.T) {
 		req := Post(t, "/purchases", map[string]interface{}{
-			"qty":                5,
-			"price":              155.75,
-			"paid":               true,
-			"product_id":         1,
-			"payment_date":       time.Now(),
-			"payment_account_id": cash.ID,
-			"payable_account_id": nil,
+			"Qty":              5,
+			"Price":            155.75,
+			"Paid":             true,
+			"ProductID":        1,
+			"PaymentDate":      time.Now(),
+			"PaymentAccountID": cash.ID,
+			"PayableAccountID": nil,
 		})
 
 		w := httptest.NewRecorder()
@@ -193,13 +193,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Create not paid", func(t *testing.T) {
 		req := Post(t, "/purchases", map[string]interface{}{
-			"qty":                5,
-			"price":              155.75,
-			"paid":               false,
-			"product_id":         1,
-			"payment_date":       nil,
-			"payment_account_id": nil,
-			"payable_account_id": receivables.ID,
+			"Qty":              5,
+			"Price":            155.75,
+			"Paid":             false,
+			"ProductID":        1,
+			"PaymentDate":      nil,
+			"PaymentAccountID": nil,
+			"PayableAccountID": receivables.ID,
 		})
 
 		w := httptest.NewRecorder()
@@ -342,13 +342,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Update paid", func(t *testing.T) {
 		req := Put(t, "/purchases/1", map[string]interface{}{
-			"qty":                10,
-			"price":              155.75,
-			"paid":               true,
-			"product_id":         1,
-			"payment_date":       time.Now(),
-			"payment_account_id": cash.ID,
-			"payable_account_id": nil,
+			"Qty":              10,
+			"Price":            155.75,
+			"Paid":             true,
+			"ProductID":        1,
+			"PaymentDate":      time.Now(),
+			"PaymentAccountID": cash.ID,
+			"PayableAccountID": nil,
 		})
 
 		w := httptest.NewRecorder()
@@ -400,13 +400,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Update not paid", func(t *testing.T) {
 		req := Put(t, "/purchases/2", map[string]interface{}{
-			"qty":                10,
-			"price":              155.75,
-			"paid":               false,
-			"product_id":         1,
-			"payment_date":       nil,
-			"payment_account_id": nil,
-			"payable_account_id": receivables.ID,
+			"Qty":              10,
+			"Price":            155.75,
+			"Paid":             false,
+			"ProductID":        1,
+			"PaymentDate":      nil,
+			"PaymentAccountID": nil,
+			"PayableAccountID": receivables.ID,
 		})
 
 		w := httptest.NewRecorder()
@@ -468,13 +468,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Update to paid", func(t *testing.T) {
 		req := Put(t, "/purchases/2", map[string]interface{}{
-			"qty":                10,
-			"price":              155.75,
-			"paid":               true,
-			"product_id":         1,
-			"payment_date":       time.Now(),
-			"payment_account_id": cash.ID,
-			"payable_account_id": receivables.ID,
+			"Qty":              10,
+			"Price":            155.75,
+			"Paid":             true,
+			"ProductID":        1,
+			"PaymentDate":      time.Now(),
+			"PaymentAccountID": cash.ID,
+			"PayableAccountID": receivables.ID,
 		})
 
 		w := httptest.NewRecorder()
@@ -526,13 +526,13 @@ func TestPurchase(t *testing.T) {
 
 	t.Run("Update to not paid", func(t *testing.T) {
 		req := Put(t, "/purchases/1", map[string]interface{}{
-			"qty":                10,
-			"price":              155.75,
-			"paid":               false,
-			"product_id":         1,
-			"payment_date":       time.Now(),
-			"payment_account_id": cash.ID,
-			"payable_account_id": receivables.ID,
+			"Qty":              10,
+			"Price":            155.75,
+			"Paid":             false,
+			"ProductID":        1,
+			"PaymentDate":      time.Now(),
+			"PaymentAccountID": cash.ID,
+			"PayableAccountID": receivables.ID,
 		})
 
 		w := httptest.NewRecorder()

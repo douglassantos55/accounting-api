@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"example.com/accounting/events"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -55,4 +56,12 @@ func registerValidation() {
 		v.RegisterValidation("cpf_cnpj", validCpfCpnj)
 		v.RegisterValidation("unique", databaseUnique)
 	}
+}
+
+func RegisterEvents() {
+	events.Handle(events.PurchaseCreated, CreateStockEntry)
+	events.Handle(events.PurchaseCreated, CreateAccountingEntry)
+
+	events.Handle(events.PurchaseUpdated, UpdateStockEntry)
+	events.Handle(events.PurchaseUpdated, UpdateAccountingEntry)
 }
