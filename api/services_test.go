@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,9 +46,9 @@ func TestServices(t *testing.T) {
 
 	t.Run("Create", func(t *testing.T) {
 		req := Post(t, "/services", map[string]interface{}{
-			"name":                       "Window cleaning",
-			"revenue_account_id":         1,
-			"cost_of_service_account_id": 3,
+			"Name":                   "Window cleaning",
+			"RevenueAccountID":       1,
+			"CostOfServiceAccountID": 3,
 		})
 
 		w := httptest.NewRecorder()
@@ -77,13 +78,15 @@ func TestServices(t *testing.T) {
 
 	t.Run("Validation", func(t *testing.T) {
 		req := Post(t, "/services", map[string]interface{}{
-			"name":                       "",
-			"revenue_account_id":         "",
-			"cost_of_service_account_id": "",
+			"Name":                   "",
+			"RevenueAccountID":       0,
+			"CostOfServiceAccountID": 0,
 		})
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
+
+		fmt.Printf("w.Body.String(): %v\n", w.Body.String())
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
@@ -187,9 +190,9 @@ func TestServices(t *testing.T) {
 		})
 
 		req := Put(t, "/services/1", map[string]interface{}{
-			"name":                       "General Cleaning",
-			"revenue_account_id":         5,
-			"cost_of_service_account_id": 3,
+			"Name":                   "General Cleaning",
+			"RevenueAccountID":       5,
+			"CostOfServiceAccountID": 3,
 		})
 
 		w := httptest.NewRecorder()
