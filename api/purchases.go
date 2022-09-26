@@ -171,6 +171,8 @@ func createPurchase(context *gin.Context) {
 
 	events.Dispatch(events.PurchaseCreated, purchase)
 
+	db.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount").First(&purchase)
+
 	context.JSON(http.StatusOK, purchase)
 }
 
@@ -248,23 +250,7 @@ func updatePurchase(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&purchase); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if purchase.Paid && purchase.PaymentAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPaymentAccountMissing,
-		})
-		return
-	}
-
-	if !purchase.Paid && purchase.PayableAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPayableAccountMissing,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -274,6 +260,8 @@ func updatePurchase(context *gin.Context) {
 	}
 
 	events.Dispatch(events.PurchaseUpdated, purchase)
+
+	db.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount").First(&purchase)
 
 	context.JSON(http.StatusOK, purchase)
 }
