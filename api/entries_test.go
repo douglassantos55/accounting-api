@@ -44,10 +44,10 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Create", func(t *testing.T) {
 		req := Post(t, "/entries", map[string]interface{}{
-			"description": "Sales of apples",
-			"transactions": []map[string]interface{}{
-				{"account_id": cash.ID, "value": 1000},
-				{"account_id": revenue.ID, "value": 1000},
+			"Description": "Sales of apples",
+			"Transactions": []map[string]interface{}{
+				{"AccountID": cash.ID, "Value": 1000},
+				{"AccountID": revenue.ID, "Value": 1000},
 			},
 		})
 
@@ -82,10 +82,10 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Create unbalanced", func(t *testing.T) {
 		req := Post(t, "/entries", map[string]interface{}{
-			"description": "Sales of apples",
-			"transactions": []map[string]interface{}{
-				{"account_id": cash.ID, "value": 1000},
-				{"account_id": cash.ID, "value": 1000},
+			"Description": "Sales of apples",
+			"Transactions": []map[string]interface{}{
+				{"AccountID": cash.ID, "Value": 1000},
+				{"AccountID": cash.ID, "Value": 1000},
 			},
 		})
 
@@ -207,10 +207,10 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Update", func(t *testing.T) {
 		req := Put(t, "/entries/1", map[string]interface{}{
-			"description": "Updated entry",
-			"transactions": []map[string]interface{}{
-				{"value": 500, "account_id": revenue.ID},
-				{"value": 500, "account_id": cash.ID},
+			"Description": "Updated entry",
+			"Transactions": []map[string]interface{}{
+				{"Value": 500, "AccountID": revenue.ID},
+				{"Value": 500, "AccountID": cash.ID},
 			},
 		})
 
@@ -273,10 +273,10 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Update unbalanced", func(t *testing.T) {
 		req := Put(t, "/entries/1", map[string]interface{}{
-			"description": "Updated entry",
-			"transactions": []map[string]interface{}{
-				{"value": 600, "account_id": revenue.ID},
-				{"value": 500, "account_id": cash.ID},
+			"Description": "Updated entry",
+			"Transactions": []map[string]interface{}{
+				{"Value": 600, "AccountID": revenue.ID},
+				{"Value": 500, "AccountID": cash.ID},
 			},
 		})
 
@@ -299,10 +299,10 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Update from another company", func(t *testing.T) {
 		req := Put(t, "/entries/2", map[string]interface{}{
-			"description": "Updated entry",
-			"transactions": []map[string]interface{}{
-				{"value": 500, "account_id": revenue.ID},
-				{"value": 500, "account_id": cash.ID},
+			"Description": "Updated entry",
+			"Transactions": []map[string]interface{}{
+				{"Value": 500, "AccountID": revenue.ID},
+				{"Value": 500, "AccountID": cash.ID},
 			},
 		})
 
@@ -389,11 +389,11 @@ func TestEntries(t *testing.T) {
 		})
 
 		req := Post(t, "/entries", map[string]interface{}{
-			"description": "With Purchase",
-			"purchase_id": 1,
-			"transactions": []map[string]interface{}{
-				{"account_id": cash.ID, "value": 1000},
-				{"account_id": revenue.ID, "value": 1000},
+			"Description": "With Purchase",
+			"PurchaseID": 1,
+			"Transactions": []map[string]interface{}{
+				{"AccountID": cash.ID, "Value": 1000},
+				{"AccountID": revenue.ID, "Value": 1000},
 			},
 		})
 

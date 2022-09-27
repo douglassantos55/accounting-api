@@ -7,8 +7,8 @@ import (
 
 type Entry struct {
 	gorm.Model
-	Description  string    `binding:"required"`
-	PurchaseID   *uint     `json:"purchase_id"`
+	Description  string `binding:"required"`
+	PurchaseID   *uint
 	Purchase     *Purchase `gorm:"constraint:OnDelete:CASCADE;"`
 	SourceID     uint
 	SourceType   string
@@ -40,7 +40,7 @@ func (e Entry) IsBalanced() bool {
 type Transaction struct {
 	gorm.Model
 	Value     float64 `binding:"required"`
-	AccountID uint    `json:"account_id" binding:"required"`
+	AccountID uint    `binding:"required"`
 	Account   *Account
 	EntryID   uint
 	Entry     *Entry `gorm:"constraint:OnDelete:CASCADE"`

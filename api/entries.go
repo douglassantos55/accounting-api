@@ -65,7 +65,9 @@ func listEntries(context *gin.Context) {
 	var entries []models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if result := db.Scopes(models.FromCompany(companyID)).Find(&entries); result.Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID)).Preload("Transactions.Account")
+
+	if result := tx.Find(&entries); result.Error != nil {
 		log.Print("Could not find entries", result.Error)
 	}
 
