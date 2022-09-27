@@ -308,24 +308,24 @@ func deletePurchase(context *gin.Context) {
 	}
 
 	if purchase.StockEntryID != nil {
-		db.Delete(&models.StockEntry{}, *purchase.StockEntryID)
+		db.Unscoped().Delete(&models.StockEntry{}, *purchase.StockEntryID)
 	}
 
 	if purchase.PaymentEntry != nil {
+		db.Unscoped().Delete(purchase.PaymentEntry)
 		for _, transaction := range purchase.PaymentEntry.Transactions {
-			db.Delete(&models.Transaction{}, transaction.ID)
+			db.Unscoped().Delete(&models.Transaction{}, transaction.ID)
 		}
 	}
 
 	if purchase.PayableEntry != nil {
+		db.Unscoped().Delete(purchase.PayableEntry)
 		for _, transaction := range purchase.PayableEntry.Transactions {
-			db.Delete(&models.Transaction{}, transaction.ID)
+			db.Unscoped().Delete(&models.Transaction{}, transaction.ID)
 		}
 	}
 
-	t := db.Select("StockEntry", "PaymentEntry", "PayableEntry")
-
-	if t.Delete(&models.Purchase{}, id).Error != nil {
+	if db.Unscoped().Delete(&models.Purchase{}, id).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}

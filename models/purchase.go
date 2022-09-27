@@ -15,13 +15,13 @@ type Purchase struct {
 	CompanyID        uint
 	Company          *Company
 	PayableAccountID *uint    `binding:"required_if=Paid false"`
-	PayableAccount   *Account `gorm:"foreignKey:PayableAccountID;constraint:OnDelete:SET NULL;"`
+	PayableAccount   *Account `gorm:"foreignKey:PayableAccountID;"`
 	PaymentAccountID *uint    `binding:"required_if=Paid true"`
-	PaymentAccount   *Account `gorm:"foreignKey:PaymentAccountID;constraint:OnDelete:SET NULL;"`
+	PaymentAccount   *Account `gorm:"foreignKey:PaymentAccountID;"`
 	ProductID        uint     `binding:"required"`
-	Product          *Product `gorm:"constraint:OnDelete:CASCADE;"`
+	Product          *Product
 	StockEntryID     *uint
-	StockEntry       *StockEntry `gorm:"constraint:OnDelete:SET NULL;"`
+	StockEntry       *StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
 	PaymentEntryID   *uint
 	PaymentEntry     *Entry `gorm:"foreignKey:PaymentEntryID;constraint:OnDelete:CASCADE;"`
 	PayableEntryID   *uint
