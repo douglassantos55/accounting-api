@@ -2,7 +2,6 @@ package api_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -85,8 +84,6 @@ func TestServices(t *testing.T) {
 
 		w := httptest.NewRecorder()
 		router.ServeHTTP(w, req)
-
-		fmt.Printf("w.Body.String(): %v\n", w.Body.String())
 
 		if w.Code != http.StatusBadRequest {
 			t.Errorf("Expected status %v, got %v", http.StatusBadRequest, w.Code)
