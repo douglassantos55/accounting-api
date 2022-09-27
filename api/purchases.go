@@ -171,7 +171,13 @@ func createPurchase(context *gin.Context) {
 
 	events.Dispatch(events.PurchaseCreated, purchase)
 
-	db.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount").First(&purchase)
+	db.
+		Joins("PaymentAccount").
+		Joins("PayableAccount").
+		Preload("Product.Vendor").
+		Preload("PaymentEntry.Transactions.Account").
+		Preload("PayableEntry.Transactions.Account").
+		First(&purchase)
 
 	context.JSON(http.StatusOK, purchase)
 }
@@ -187,7 +193,9 @@ func listPurchases(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	tx := db.Scopes(models.FromCompany(companyID))
-	tx = tx.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount")
+	tx = tx.Preload("PaymentEntry.Transactions.Account")
+	tx = tx.Preload("PayableEntry.Transactions.Account")
+	tx = tx.Preload("Product.Vendor").Joins("PaymentAccount").Joins("PayableAccount")
 
 	if tx.Find(&purchases).Error != nil {
 		context.Status(http.StatusInternalServerError)
@@ -214,7 +222,9 @@ func viewPurchase(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	tx := db.Scopes(models.FromCompany(companyID))
-	tx = tx.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount")
+	tx = tx.Preload("PaymentEntry.Transactions.Account")
+	tx = tx.Preload("PayableEntry.Transactions.Account")
+	tx = tx.Preload("Product.Vendor").Joins("PaymentAccount").Joins("PayableAccount")
 
 	if tx.First(&purchase, id).Error != nil {
 		context.Status(http.StatusNotFound)
@@ -261,7 +271,13 @@ func updatePurchase(context *gin.Context) {
 
 	events.Dispatch(events.PurchaseUpdated, purchase)
 
-	db.Joins("Product").Joins("PaymentAccount").Joins("PayableAccount").First(&purchase)
+	db.
+		Joins("PaymentAccount").
+		Joins("PayableAccount").
+		Preload("Product.Vendor").
+		Preload("PaymentEntry.Transactions.Account").
+		Preload("PayableEntry.Transactions.Account").
+		First(&purchase)
 
 	context.JSON(http.StatusOK, purchase)
 }
@@ -279,51 +295,40 @@ func deletePurchase(context *gin.Context) {
 		return
 	}
 
-	tx := db.Begin()
-
 	var purchase *models.Purchase
 	companyID := context.Value("CompanyID").(uint)
 
-	query := tx.Scopes(models.FromCompany(companyID))
+	query := db.Scopes(models.FromCompany(companyID))
 	query = query.Preload("PaymentEntry.Transactions")
 	query = query.Preload("PayableEntry.Transactions")
 
 	if query.First(&purchase, id).Error != nil {
-		tx.Rollback()
 		context.Status(http.StatusNotFound)
 		return
 	}
 
-	// TODO: figure out why it does not cascade through entries
-	if tx.Unscoped().Delete(&models.StockEntry{}, *purchase.StockEntryID).Error != nil {
-		tx.Rollback()
-		context.Status(http.StatusInternalServerError)
-		return
+	if purchase.StockEntryID != nil {
+		db.Delete(&models.StockEntry{}, *purchase.StockEntryID)
 	}
 
-	if purchase.PaymentEntryID != nil {
-		if tx.Unscoped().Delete(&models.Entry{}, *purchase.PaymentEntryID).Error != nil {
-			tx.Rollback()
-			context.Status(http.StatusInternalServerError)
-			return
+	if purchase.PaymentEntry != nil {
+		for _, transaction := range purchase.PaymentEntry.Transactions {
+			db.Delete(&models.Transaction{}, transaction.ID)
 		}
 	}
 
-	if purchase.PayableEntryID != nil {
-		if tx.Unscoped().Delete(&models.Entry{}, *purchase.PayableEntryID).Error != nil {
-			tx.Rollback()
-			context.Status(http.StatusInternalServerError)
-			return
+	if purchase.PayableEntry != nil {
+		for _, transaction := range purchase.PayableEntry.Transactions {
+			db.Delete(&models.Transaction{}, transaction.ID)
 		}
 	}
 
-	if tx.Unscoped().Delete(&models.Purchase{}, id).Error != nil {
-		tx.Rollback()
+	t := db.Select("StockEntry", "PaymentEntry", "PayableEntry")
+
+	if t.Delete(&models.Purchase{}, id).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
-
-	tx.Commit()
 
 	context.Status(http.StatusNoContent)
 }
