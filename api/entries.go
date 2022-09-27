@@ -26,9 +26,7 @@ func RegisterEntriesEndpoint(router *gin.Engine) {
 func createEntry(context *gin.Context) {
 	var entry *models.Entry
 	if err := context.ShouldBindJSON(&entry); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -51,6 +49,8 @@ func createEntry(context *gin.Context) {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
+
+	db.Preload("Transactions.Account").First(&entry)
 
 	context.JSON(http.StatusOK, entry)
 }
@@ -90,7 +90,9 @@ func viewEntry(context *gin.Context) {
 	var entry models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&entry, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID)).Preload("Transactions.Account")
+
+	if tx.First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -120,9 +122,7 @@ func updateEntry(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&entry); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -137,6 +137,8 @@ func updateEntry(context *gin.Context) {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
+
+	db.Preload("Transactions.Account").First(&entry)
 
 	context.JSON(http.StatusOK, entry)
 }
