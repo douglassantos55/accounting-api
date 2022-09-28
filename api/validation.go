@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
 	"example.com/accounting/database"
 	"github.com/go-playground/validator/v10"
@@ -36,7 +37,9 @@ type MyError struct {
 }
 
 func (e MyError) Field() string {
-	return e.err.Field()
+	_, name, _ := strings.Cut(e.err.Namespace(), ".")
+	name = strings.Replace(name, "[", ".", -1)
+	return strings.Replace(name, "]", "", -1)
 }
 
 func (e MyError) Error() string {

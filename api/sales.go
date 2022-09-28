@@ -2,6 +2,7 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -92,23 +93,7 @@ func ReduceProductStock(data interface{}) {
 func createSale(context *gin.Context) {
 	var sale *models.Sale
 	if err := context.ShouldBindJSON(&sale); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if sale.Paid && sale.PaymentAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPaymentAccountMissing,
-		})
-		return
-	}
-
-	if !sale.Paid && sale.ReceivableAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrReceivableAccountMissing,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -118,14 +103,14 @@ func createSale(context *gin.Context) {
 		return
 	}
 
-	for _, item := range sale.Items {
+	for idx, item := range sale.Items {
 		if item.Product == nil {
 			db.Preload("StockEntries").First(&item.Product, item.ProductID)
 		}
 
 		if item.Product.Inventory() < item.Qty {
 			context.JSON(http.StatusBadRequest, gin.H{
-				"error": ErrNotEnoughStock.Error(),
+				fmt.Sprintf("Items.%d.Qty", idx): ErrNotEnoughStock.Error(),
 			})
 			return
 		}
@@ -139,6 +124,8 @@ func createSale(context *gin.Context) {
 	}
 
 	events.Dispatch(events.SaleCreated, sale)
+
+	db.Preload("Items.Product").Joins("PaymentAccount").Joins("ReceivableAccount").Joins("Customer").First(&sale)
 
 	context.JSON(http.StatusOK, sale)
 }
@@ -156,7 +143,7 @@ func listSales(context *gin.Context) {
 	query := db.Scopes(models.FromCompany(companyID))
 	query = query.Joins("PaymentAccount").Joins("ReceivableAccount")
 
-	if query.Preload("Items").Joins("Customer").Find(&sales).Error != nil {
+	if query.Preload("Items.Product").Joins("Customer").Find(&sales).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}
@@ -183,7 +170,7 @@ func viewSale(context *gin.Context) {
 	query := db.Scopes(models.FromCompany(companyID))
 	query = query.Joins("PaymentAccount").Joins("ReceivableAccount")
 
-	if query.Preload("Items").Joins("Customer").First(&sale, id).Error != nil {
+	if query.Preload("Items.Product").Joins("Customer").First(&sale, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}
@@ -208,7 +195,7 @@ func updateSale(context *gin.Context) {
 	companyID := context.Value("CompanyID").(uint)
 
 	query := db.Scopes(models.FromCompany(companyID))
-	query = query.Preload("Items").Preload("Entries").Preload("StockUsages")
+	query = query.Preload("Items.Product").Preload("Entries").Preload("StockUsages")
 
 	if query.First(&sale, id).Error != nil {
 		context.Status(http.StatusNotFound)
@@ -244,6 +231,8 @@ func updateSale(context *gin.Context) {
 	}
 
 	events.Dispatch(events.SaleUpdated, sale)
+
+	db.Preload("Items.Product").Joins("PaymentAccount").Joins("ReceivableAccount").Joins("Customer").First(&sale)
 
 	context.JSON(http.StatusOK, sale)
 }

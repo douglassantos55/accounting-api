@@ -61,7 +61,12 @@ func registerValidation() {
 func RegisterEvents() {
 	events.Handle(events.PurchaseCreated, CreateStockEntry)
 	events.Handle(events.PurchaseCreated, CreateAccountingEntry)
-
 	events.Handle(events.PurchaseUpdated, UpdateStockEntry)
 	events.Handle(events.PurchaseUpdated, UpdateAccountingEntry)
+
+	events.Handle(events.SaleCreated, ReduceProductStock)
+	events.Handle(events.SaleCreated, CreateAccountingEntries)
+	events.Handle(events.SaleUpdated, ReduceProductStock)
+	events.Handle(events.SaleUpdated, CreateAccountingEntries)
+
 }

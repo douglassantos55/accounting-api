@@ -7,7 +7,7 @@ import (
 type Sale struct {
 	gorm.Model
 	Paid              bool
-	Items             []*Item  `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1"`
+	Items             []*Item  `gorm:"constraint:OnDelete:CASCADE;" binding:"min=1,required,dive,required"`
 	Entries           []*Entry `gorm:"polymorphic:Source"`
 	Customer          *Customer
 	Company           *Company
@@ -15,10 +15,10 @@ type Sale struct {
 	ReceivableAccount *Account      `gorm:"constraint:OnDelete:SET NULL;"`
 	StockUsages       []*StockUsage `gorm:"polymorphic:Source"`
 
-	CustomerID          uint `json:"customer_id" binding:"required"`
+	CustomerID          uint `binding:"required"`
 	CompanyID           uint
-	PaymentAccountID    *uint `json:"payment_account_id"`
-	ReceivableAccountID *uint `json:"receivable_account_id"`
+	PaymentAccountID    *uint `binding:"required_if=Paid true"`
+	ReceivableAccountID *uint `binding:"required_if=Paid false"`
 }
 
 func (s Sale) Total() float64 {
@@ -31,9 +31,9 @@ func (s Sale) Total() float64 {
 
 type Item struct {
 	gorm.Model
-	Qty       uint
-	Price     float64
-	ProductID uint `json:"product_id"`
+	Qty       uint    `binding:"required,min=1"`
+	Price     float64 `binding:"required"`
+	ProductID uint    `binding:"required"`
 	Product   *Product
 	SaleID    uint
 	Sale      *Sale
