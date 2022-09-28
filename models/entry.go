@@ -14,7 +14,7 @@ type Entry struct {
 	SourceType   string
 	CompanyID    uint
 	Company      *Company       `gorm:"constraint:OnDelete:CASCADE"`
-	Transactions []*Transaction `binding:"min=2" gorm:"constraint:OnDelete:CASCADE;"`
+	Transactions []*Transaction `binding:"min=2,required,dive,required" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (e Entry) IsBalanced() bool {

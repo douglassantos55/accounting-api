@@ -116,7 +116,8 @@ func updateEntry(context *gin.Context) {
 	var entry *models.Entry
 	companyID := context.Value("CompanyID").(uint)
 
-	if db.Scopes(models.FromCompany(companyID)).First(&entry, id).Error != nil {
+	tx := db.Scopes(models.FromCompany(companyID))
+	if tx.Preload("Transactions").First(&entry, id).Error != nil {
 		context.Status(http.StatusNotFound)
 		return
 	}

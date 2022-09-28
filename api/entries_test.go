@@ -108,8 +108,8 @@ func TestEntries(t *testing.T) {
 
 	t.Run("Create without transactions", func(t *testing.T) {
 		req := Post(t, "/entries", map[string]interface{}{
-			"description":  "Sales of apples",
-			"transactions": []map[string]interface{}{},
+			"Description":  "Sales of apples",
+			"Transactions": []map[string]interface{}{},
 		})
 
 		w := httptest.NewRecorder()
