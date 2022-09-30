@@ -116,9 +116,7 @@ func updateService(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&service); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -162,23 +160,7 @@ func deleteService(context *gin.Context) {
 func createPerformed(context *gin.Context) {
 	var performed *models.ServicePerformed
 	if err := context.ShouldBindJSON(&performed); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
-		return
-	}
-
-	if performed.Paid && performed.PaymentAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrPaymentAccountMissing.Error(),
-		})
-		return
-	}
-
-	if !performed.Paid && performed.ReceivableAccountID == nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": ErrReceivableAccountMissing.Error(),
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 
@@ -224,9 +206,7 @@ func updatePerformed(context *gin.Context) {
 	}
 
 	if err := context.ShouldBindJSON(&performed); err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
+		context.JSON(http.StatusBadRequest, Errors(err))
 		return
 	}
 

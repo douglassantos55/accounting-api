@@ -243,14 +243,14 @@ func TestServices(t *testing.T) {
 		})
 
 		req := Post(t, "/services/performed", map[string]interface{}{
-			"paid":                  true,
-			"value":                 122,
-			"service_id":            1,
-			"payment_account_id":    &cash.ID,
-			"receivable_account_id": nil,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 10},
-				{"product_id": 2, "qty": 10},
+			"Paid":                true,
+			"Value":               122,
+			"ServiceID":           1,
+			"PaymentAccountID":    &cash.ID,
+			"ReceivableAccountID": nil,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 10},
+				{"ProductID": 2, "Qty": 10},
 			},
 		})
 
@@ -335,14 +335,14 @@ func TestServices(t *testing.T) {
 
 	t.Run("Perform paid without payment account", func(t *testing.T) {
 		req := Post(t, "/services/performed", map[string]interface{}{
-			"paid":                  true,
-			"value":                 122,
-			"service_id":            1,
-			"payment_account_id":    nil,
-			"receivable_account_id": nil,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 10},
-				{"product_id": 2, "qty": 10},
+			"Paid":                true,
+			"Value":               122,
+			"ServiceID":           1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": nil,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 10},
+				{"ProductID": 2, "Qty": 10},
 			},
 		})
 
@@ -358,21 +358,21 @@ func TestServices(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrPaymentAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrPaymentAccountMissing, response["error"])
+		if _, ok := response["PaymentAccountID"]; !ok {
+			t.Error("Expected Payment account error")
 		}
 	})
 
 	t.Run("Perform not paid without receivable account", func(t *testing.T) {
 		req := Post(t, "/services/performed", map[string]interface{}{
-			"paid":                  false,
-			"value":                 122,
-			"service_id":            1,
-			"payment_account_id":    nil,
-			"receivable_account_id": nil,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 10},
-				{"product_id": 2, "qty": 10},
+			"Paid":                false,
+			"Value":               122,
+			"ServiceID":           1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": nil,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 10},
+				{"ProductID": 2, "Qty": 10},
 			},
 		})
 
@@ -388,8 +388,8 @@ func TestServices(t *testing.T) {
 			t.Error("Failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrReceivableAccountMissing.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrReceivableAccountMissing, response["error"])
+		if _, ok := response["ReceivableAccountID"]; !ok {
+			t.Errorf("Expected Receivable account error")
 		}
 	})
 
@@ -398,13 +398,13 @@ func TestServices(t *testing.T) {
 		db.Create(bank)
 
 		req := Put(t, "/services/performed/1", map[string]interface{}{
-			"paid":                  true,
-			"value":                 222,
-			"service_id":            1,
-			"payment_account_id":    &bank.ID,
-			"receivable_account_id": nil,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 20},
+			"Paid":                true,
+			"Value":               222,
+			"ServiceID":           1,
+			"PaymentAccountID":    &bank.ID,
+			"ReceivableAccountID": nil,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 20},
 			},
 		})
 
@@ -493,13 +493,13 @@ func TestServices(t *testing.T) {
 		db.Create(receivable)
 
 		req := Put(t, "/services/performed/1", map[string]interface{}{
-			"paid":                  false,
-			"value":                 422,
-			"service_id":            1,
-			"payment_account_id":    nil,
-			"receivable_account_id": &receivable.ID,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 20},
+			"Paid":                false,
+			"Value":               422,
+			"ServiceID":           1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": &receivable.ID,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 20},
 			},
 		})
 
@@ -552,13 +552,13 @@ func TestServices(t *testing.T) {
 
 	t.Run("Update to paid", func(t *testing.T) {
 		req := Put(t, "/services/performed/1", map[string]interface{}{
-			"paid":                  true,
-			"value":                 522,
-			"service_id":            1,
-			"payment_account_id":    &cash.ID,
-			"receivable_account_id": nil,
-			"consumptions": []map[string]interface{}{
-				{"product_id": 1, "qty": 20},
+			"Paid":                true,
+			"Value":               522,
+			"ServiceID":           1,
+			"PaymentAccountID":    &cash.ID,
+			"ReceivableAccountID": nil,
+			"Consumptions": []map[string]interface{}{
+				{"ProductID": 1, "Qty": 20},
 			},
 		})
 
@@ -709,8 +709,8 @@ func TestServices(t *testing.T) {
 
 	t.Run("Update non existent", func(t *testing.T) {
 		req := Put(t, "/services/4202", map[string]interface{}{
-			"name":               "Renting",
-			"revenue_account_id": 2,
+			"Name":             "Renting",
+			"RevenueAccountID": 2,
 		})
 
 		w := httptest.NewRecorder()
@@ -723,8 +723,8 @@ func TestServices(t *testing.T) {
 
 	t.Run("Update invalid", func(t *testing.T) {
 		req := Put(t, "/services/sths", map[string]interface{}{
-			"name":               "Renting",
-			"revenue_account_id": 2,
+			"Name":             "Renting",
+			"RevenueAccountID": 2,
 		})
 
 		w := httptest.NewRecorder()
@@ -737,8 +737,8 @@ func TestServices(t *testing.T) {
 
 	t.Run("Update from another company", func(t *testing.T) {
 		req := Put(t, "/services/2", map[string]interface{}{
-			"name":               "Renting",
-			"revenue_account_id": 2,
+			"Name":             "Renting",
+			"RevenueAccountID": 2,
 		})
 
 		w := httptest.NewRecorder()
