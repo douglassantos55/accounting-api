@@ -27,6 +27,7 @@ func main() {
 		&models.Entry{},
 		&models.Sale{},
 		&models.Item{},
+		&models.StockUsage{},
 	)
 
 	api.RegisterEvents()

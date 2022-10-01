@@ -51,6 +51,7 @@ func TestAccountsEndpoint(t *testing.T) {
 
 	db.AutoMigrate(&models.Account{})
 	db.AutoMigrate(&models.Company{})
+	db.AutoMigrate(&models.Transaction{})
 
 	t.Cleanup(database.Cleanup)
 
