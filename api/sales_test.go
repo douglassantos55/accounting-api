@@ -111,13 +111,13 @@ func TestSales(t *testing.T) {
 
 	t.Run("Create paid", func(t *testing.T) {
 		req := Post(t, "/sales", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           1,
-			"payment_account_id":    cash.ID,
-			"receivable_account_id": nil,
-			"items": []map[string]interface{}{
-				{"qty": 10, "price": 200, "product_id": 1},
-				{"qty": 10, "price": 250, "product_id": 2},
+			"Paid":                true,
+			"CustomerID":          1,
+			"PaymentAccountID":    cash.ID,
+			"ReceivableAccountID": nil,
+			"Items": []map[string]interface{}{
+				{"Qty": 10, "Price": 200, "ProductID": 1},
+				{"Qty": 10, "Price": 250, "ProductID": 2},
 			},
 		})
 
@@ -243,13 +243,13 @@ func TestSales(t *testing.T) {
 
 	t.Run("Create not paid", func(t *testing.T) {
 		req := Post(t, "/sales", map[string]interface{}{
-			"paid":                  false,
-			"customer_id":           1,
-			"payment_account_id":    nil,
-			"receivable_account_id": receivables.ID,
-			"items": []map[string]interface{}{
-				{"qty": 10, "price": 200, "product_id": 1},
-				{"qty": 10, "price": 250, "product_id": 2},
+			"Paid":                false,
+			"CustomerID":          1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": receivables.ID,
+			"Items": []map[string]interface{}{
+				{"Qty": 10, "Price": 200, "ProductID": 1},
+				{"Qty": 10, "Price": 250, "ProductID": 2},
 			},
 		})
 
@@ -385,13 +385,13 @@ func TestSales(t *testing.T) {
 
 	t.Run("Create without enough stock", func(t *testing.T) {
 		req := Post(t, "/sales", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           1,
-			"payment_account_id":    cash.ID,
-			"receivable_account_id": nil,
-			"items": []map[string]interface{}{
-				{"qty": 500, "price": 200, "product_id": 1},
-				{"qty": 10, "price": 250, "product_id": 2},
+			"Paid":                true,
+			"CustomerID":          1,
+			"PaymentAccountID":    cash.ID,
+			"ReceivableAccountID": nil,
+			"Items": []map[string]interface{}{
+				{"Qty": 500, "Price": 200, "ProductID": 1},
+				{"Qty": 10, "Price": 250, "ProductID": 2},
 			},
 		})
 
@@ -407,18 +407,18 @@ func TestSales(t *testing.T) {
 			t.Error("failed parsing JSON", err)
 		}
 
-		if response["error"] != api.ErrNotEnoughStock.Error() {
-			t.Errorf("Expected error %v, got %v", api.ErrNotEnoughStock.Error(), response["error"])
+		if response["Items.0.Qty"] != api.ErrNotEnoughStock.Error() {
+			t.Errorf("Expected error %v, got %v", api.ErrNotEnoughStock.Error(), response["Items.0.Qty"])
 		}
 	})
 
 	t.Run("Create without items", func(t *testing.T) {
 		req := Post(t, "/sales", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           1,
-			"payment_account_id":    cash.ID,
-			"receivable_account_id": nil,
-			"items":                 []map[string]interface{}{},
+			"Paid":                true,
+			"CustomerID":          1,
+			"PaymentAccountID":    cash.ID,
+			"ReceivableAccountID": nil,
+			"Items":               []map[string]interface{}{},
 		})
 
 		w := httptest.NewRecorder()
@@ -488,12 +488,12 @@ func TestSales(t *testing.T) {
 		})
 
 		req := Post(t, "/sales", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           2,
-			"payment_account_id":    payment.ID,
-			"receivable_account_id": nil,
-			"items": []map[string]interface{}{
-				{"qty": 10, "price": 600, "product_id": 3},
+			"Paid":                true,
+			"CustomerID":          2,
+			"PaymentAccountID":    payment.ID,
+			"ReceivableAccountID": nil,
+			"Items": []map[string]interface{}{
+				{"Qty": 10, "Price": 600, "ProductID": 3},
 			},
 		})
 
@@ -685,12 +685,12 @@ func TestSales(t *testing.T) {
 
 	t.Run("Update paid", func(t *testing.T) {
 		req := Put(t, "/sales/1", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           1,
-			"payment_account_id":    cash.ID,
-			"receivable_account_id": nil,
-			"items": []map[string]interface{}{
-				{"qty": 20, "price": 300, "product_id": 1},
+			"Paid":                true,
+			"CustomerID":          1,
+			"PaymentAccountID":    cash.ID,
+			"ReceivableAccountID": nil,
+			"Items": []map[string]interface{}{
+				{"Qty": 20, "Price": 300, "ProductID": 1},
 			},
 		})
 
@@ -772,12 +772,12 @@ func TestSales(t *testing.T) {
 
 	t.Run("Update not paid", func(t *testing.T) {
 		req := Put(t, "/sales/2", map[string]interface{}{
-			"paid":                  false,
-			"customer_id":           1,
-			"payment_account_id":    nil,
-			"receivable_account_id": receivables.ID,
-			"items": []map[string]interface{}{
-				{"qty": 20, "price": 400, "product_id": 2},
+			"Paid":                false,
+			"CustomerID":          1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": receivables.ID,
+			"Items": []map[string]interface{}{
+				{"Qty": 20, "Price": 400, "ProductID": 2},
 			},
 		})
 
@@ -859,12 +859,12 @@ func TestSales(t *testing.T) {
 
 	t.Run("Update paid to not paid", func(t *testing.T) {
 		req := Put(t, "/sales/1", map[string]interface{}{
-			"paid":                  false,
-			"customer_id":           1,
-			"payment_account_id":    nil,
-			"receivable_account_id": receivables.ID,
-			"items": []map[string]interface{}{
-				{"qty": 20, "price": 400, "product_id": 2},
+			"Paid":                false,
+			"CustomerID":          1,
+			"PaymentAccountID":    nil,
+			"ReceivableAccountID": receivables.ID,
+			"Items": []map[string]interface{}{
+				{"Qty": 20, "Price": 400, "ProductID": 2},
 			},
 		})
 
@@ -956,12 +956,12 @@ func TestSales(t *testing.T) {
 
 	t.Run("Update not paid to paid", func(t *testing.T) {
 		req := Put(t, "/sales/2", map[string]interface{}{
-			"paid":                  true,
-			"customer_id":           1,
-			"payment_account_id":    cash.ID,
-			"receivable_account_id": nil,
-			"items": []map[string]interface{}{
-				{"qty": 20, "price": 300, "product_id": 1},
+			"Paid":                true,
+			"CustomerID":          1,
+			"PaymentAccountID":    cash.ID,
+			"ReceivableAccountID": nil,
+			"Items": []map[string]interface{}{
+				{"Qty": 20, "Price": 300, "ProductID": 1},
 			},
 		})
 
