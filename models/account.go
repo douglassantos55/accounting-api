@@ -30,7 +30,7 @@ type Account struct {
 	CompanyID    uint           `json:"-"`
 	Company      *Company       `json:"-"`
 	Children     []*Account     `gorm:"foreignKey:ParentID; constraint:OnDelete:CASCADE;"`
-	Transactions []*Transaction `json:"-" gorm:"constraint:OnDelete:CASCADE;"`
+	Transactions []*Transaction `gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 func (a Account) Balance() float64 {
