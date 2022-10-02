@@ -22,8 +22,6 @@ type Purchase struct {
 	Product          *Product
 	StockEntryID     *uint
 	StockEntry       *StockEntry `gorm:"constraint:OnDelete:CASCADE;"`
-	PaymentEntryID   *uint
-	PaymentEntry     *Entry `gorm:"foreignKey:PaymentEntryID;constraint:OnDelete:CASCADE;"`
-	PayableEntryID   *uint
-	PayableEntry     *Entry `gorm:"foreignKey:PayableEntryID;constraint:OnDelete:CASCADE;"`
+	PaymentEntry     *Entry      `gorm:"polymorphic:Source;polymorphicValue:PurchasePayment;constraint:OnDelete:CASCADE;"`
+	PayableEntry     *Entry      `gorm:"polymorphic:Source;polymorphicValue:PurchasePayable;constraint:OnDelete:CASCADE;"`
 }

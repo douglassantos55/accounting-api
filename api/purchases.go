@@ -97,7 +97,7 @@ func UpdateAccountingEntry(data interface{}) {
 
 	price := purchase.Price * float64(purchase.Qty)
 
-	if purchase.PayableEntryID != nil {
+	if purchase.PayableEntry != nil {
 		// update existing payable entry
 		purchase.PayableEntry.Transactions[0].AccountID = product.InventoryAccountID
 		purchase.PayableEntry.Transactions[0].Value = price
@@ -107,7 +107,7 @@ func UpdateAccountingEntry(data interface{}) {
 	}
 
 	if purchase.Paid {
-		if purchase.PaymentEntryID != nil {
+		if purchase.PaymentEntry != nil {
 			// update existing payment entry
 			purchase.PaymentEntry.Transactions[0].AccountID = product.InventoryAccountID
 			purchase.PaymentEntry.Transactions[0].Value = price
@@ -126,7 +126,7 @@ func UpdateAccountingEntry(data interface{}) {
 			}
 		}
 	} else {
-		if purchase.PayableEntryID == nil {
+		if purchase.PayableEntry == nil {
 			purchase.PayableEntry = &models.Entry{
 				CompanyID:   purchase.CompanyID,
 				Description: "Purchase of product",
@@ -137,11 +137,10 @@ func UpdateAccountingEntry(data interface{}) {
 			}
 		}
 
-		if purchase.PaymentEntryID != nil {
+		if purchase.PaymentEntry != nil {
 			// Remove for real instead of soft-deleting so it cascades through
 			// the transactions
-			db.Unscoped().Delete(&models.Entry{}, *purchase.PaymentEntryID)
-			purchase.PaymentEntryID = nil
+			db.Unscoped().Delete(&models.Entry{}, purchase.PaymentEntry.ID)
 			purchase.PaymentEntry = nil
 		}
 	}
