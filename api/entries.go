@@ -165,7 +165,7 @@ func deleteEntry(context *gin.Context) {
 		return
 	}
 
-	if db.Delete(&models.Entry{}, id).Error != nil {
+	if db.Unscoped().Delete(&models.Entry{}, id).Error != nil {
 		context.Status(http.StatusInternalServerError)
 		return
 	}

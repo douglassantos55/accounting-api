@@ -218,7 +218,7 @@ func updateSale(context *gin.Context) {
 	for _, entry := range sale.Entries {
 		entryIDs = append(entryIDs, entry.ID)
 	}
-	db.Unscoped().Delete(&sale.Entries, entryIDs)
+	db.Unscoped().Select("Transactions").Delete(&sale.Entries, entryIDs)
 	sale.Entries = []*models.Entry{}
 
 	// Remove current stock usages
